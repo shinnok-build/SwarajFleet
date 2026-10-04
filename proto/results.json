@@ -1,0 +1,138 @@
+{
+  "agents_5": {
+    "A": {
+      "stopwait": {
+        "ok_trials": 11,
+        "trials": 30,
+        "task_time_med": 37,
+        "collisions": 0,
+        "reallocations_med": 0,
+        "min_battery_med": 83.8,
+        "deadlocks": 19
+      },
+      "swaraj": {
+        "ok_trials": 29,
+        "trials": 30,
+        "task_time_med": 28,
+        "collisions": 0,
+        "reallocations_med": 0,
+        "min_battery_med": 86.4,
+        "deadlocks": 1
+      },
+      "head2head_trials": 11,
+      "head2head_tasktime_pct": 21.6
+    },
+    "B": {
+      "stopwait": {
+        "ok_trials": 15,
+        "trials": 30,
+        "task_time_med": 40,
+        "collisions": 0,
+        "reallocations_med": 0,
+        "min_battery_med": 82.3,
+        "deadlocks": 15
+      },
+      "swaraj": {
+        "ok_trials": 30,
+        "trials": 30,
+        "task_time_med": 32.5,
+        "collisions": 0,
+        "reallocations_med": 0.0,
+        "min_battery_med": 84.19999999999999,
+        "deadlocks": 0
+      },
+      "head2head_trials": 15,
+      "head2head_tasktime_pct": 22.5
+    },
+    "C": {
+      "stopwait": {
+        "ok_trials": 16,
+        "trials": 30,
+        "task_time_med": 42.5,
+        "collisions": 0,
+        "reallocations_med": 0.5,
+        "min_battery_med": 83.85,
+        "deadlocks": 14
+      },
+      "swaraj": {
+        "ok_trials": 29,
+        "trials": 30,
+        "task_time_med": 28,
+        "collisions": 0,
+        "reallocations_med": 0,
+        "min_battery_med": 86.3,
+        "deadlocks": 1
+      },
+      "head2head_trials": 16,
+      "head2head_tasktime_pct": 38.8
+    }
+  },
+  "agents_10": {
+    "A": {
+      "stopwait": {
+        "ok_trials": 1,
+        "trials": 30,
+        "task_time_med": 66,
+        "collisions": 0,
+        "reallocations_med": 4,
+        "min_battery_med": 83.4,
+        "deadlocks": 29
+      },
+      "swaraj": {
+        "ok_trials": 30,
+        "trials": 30,
+        "task_time_med": 33.0,
+        "collisions": 0,
+        "reallocations_med": 0.0,
+        "min_battery_med": 83.2,
+        "deadlocks": 0
+      },
+      "head2head_trials": 1,
+      "head2head_tasktime_pct": 60.6
+    },
+    "B": {
+      "stopwait": {
+        "ok_trials": 1,
+        "trials": 30,
+        "task_time_med": 81,
+        "collisions": 0,
+        "reallocations_med": 4,
+        "min_battery_med": 77.0,
+        "deadlocks": 29
+      },
+      "swaraj": {
+        "ok_trials": 30,
+        "trials": 30,
+        "task_time_med": 36.5,
+        "collisions": 0,
+        "reallocations_med": 0.0,
+        "min_battery_med": 80.75,
+        "deadlocks": 0
+      },
+      "head2head_trials": 1,
+      "head2head_tasktime_pct": 43.2
+    },
+    "C": {
+      "stopwait": {
+        "ok_trials": 3,
+        "trials": 30,
+        "task_time_med": 74,
+        "collisions": 0,
+        "reallocations_med": 5,
+        "min_battery_med": 77.7,
+        "deadlocks": 27
+      },
+      "swaraj": {
+        "ok_trials": 30,
+        "trials": 30,
+        "task_time_med": 36.5,
+        "collisions": 0,
+        "reallocations_med": 0.0,
+        "min_battery_med": 81.55000000000001,
+        "deadlocks": 0
+      },
+      "head2head_trials": 3,
+      "head2head_tasktime_pct": 28.4
+    }
+  }
+}

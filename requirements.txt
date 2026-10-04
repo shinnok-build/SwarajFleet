@@ -1,0 +1,4 @@
+# SwarajFleet uses only the Python standard library (3.10+).
+# There is nothing to install — this file exists so tooling that expects
+# a requirements file doesn't fail, and so the "zero dependencies" claim
+# is explicit and greppable.

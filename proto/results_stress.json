@@ -1,0 +1,51 @@
+{
+  "dead_zone": {
+    "scenario": "layout A, 10 robots, seed 7, robot a3 broadcast frozen ticks 15..45 (30 ticks)",
+    "control": {
+      "task_time": 40,
+      "completed": 10,
+      "collisions": 0,
+      "reallocations": 0
+    },
+    "dead_zone": {
+      "task_time": 53,
+      "completed": 10,
+      "collisions": 0,
+      "safety_stops": 20,
+      "reallocations": 0
+    },
+    "time_penalty_ticks": 13,
+    "assert": "0 collisions, all tasks complete, bounded penalty"
+  },
+  "forced_reassign": {
+    "scenario": "layout A, 10 robots, seed 10, task-0 pickup cell blocked ticks 2..42",
+    "release": {
+      "tick": 32,
+      "by": "a4"
+    },
+    "reclaim": [
+      {
+        "tick": 32,
+        "by": "a5"
+      }
+    ],
+    "ours": {
+      "task_time": 54,
+      "completed": 10,
+      "collisions": 0,
+      "reallocations": 1
+    },
+    "baseline_same_world": {
+      "task_time": null,
+      "completed": 8,
+      "collisions": 0,
+      "reallocations": 442
+    },
+    "control_no_block": {
+      "task_time": 43,
+      "completed": 10,
+      "collisions": 0
+    },
+    "assert": "re-assignment fires, task completes, 0 collisions"
+  }
+}

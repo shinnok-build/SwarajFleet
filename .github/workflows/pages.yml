@@ -1,0 +1,65 @@
+# Deploys the single-file simulation (site/) to GitHub Pages.
+#
+# One-time setup (do this first, in the repo UI):
+#   Settings -> Pages -> Build and deployment -> Source -> select "GitHub Actions"
+# After that, every push to main re-deploys, and the site goes live at:
+#   https://<username>.github.io/swarajfleet/
+#
+# The deploy job only runs after the engine's headless test suites pass,
+# so a broken simulation can never ship.
+
+name: Deploy simulation to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Engine tests (headless)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Invariant suite (0 collisions, completion, determinism)
+        run: node tests/site/engine.test.js
+      - name: Faithfulness cross-check vs Python reference (72 worlds)
+        run: node tests/site/crosscheck.js
+      - name: DOM boot + controls smoke
+        run: node tests/site/dom_smoke.js
+      - name: DOM full-run to completion
+        run: node tests/site/dom_run.js
+
+  build:
+    name: Package site/
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

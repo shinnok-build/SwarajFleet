@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SwarajFleet — Demo Video · SIH26123</title>
+<style>
+  :root {
+    --bg: #0B0E14; --panel: #1C2432; --line: #3A465E;
+    --orange: #E87722; --green: #3FB950; --red: #E5534B;
+    --text: #DEE4EE; --muted: #7C8799;
+    --sans: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans);
+         min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+  header { width: 100%; max-width: 960px; padding: 28px 20px 18px; }
+  h1 { font-size: 22px; letter-spacing: .4px; }
+  h1 .dot { color: var(--orange); }
+  .sub { color: var(--muted); font-size: 13.5px; margin-top: 6px; }
+  .wrap { width: 100%; max-width: 960px; padding: 0 20px 40px; flex: 1; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+          padding: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.45); }
+  video { width: 100%; display: block; border-radius: 6px; background: #000; aspect-ratio: 16/9; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; align-items: center; }
+  .pill { font-size: 12.5px; color: var(--muted); background: #0B0E14; border: 1px solid var(--line);
+          border-radius: 999px; padding: 7px 13px; }
+  .pill b { color: var(--text); font-weight: 600; }
+  .btns { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+  a.btn { text-decoration: none; font-size: 13px; font-weight: 600; padding: 8px 14px;
+          border-radius: 7px; border: 1px solid var(--line); color: var(--text);
+          background: #0B0E14; transition: border-color .15s; }
+  a.btn:hover { border-color: var(--orange); color: var(--orange); }
+  a.btn.primary { background: var(--orange); border-color: var(--orange); color: #0B0E14; }
+  a.btn.primary:hover { filter: brightness(1.1); color: #0B0E14; }
+  footer { width: 100%; text-align: center; color: var(--muted); font-size: 12px; padding: 18px; }
+  footer a { color: var(--orange); text-decoration: none; }
+</style>
+</head>
+<body>
+  <header>
+    <h1><span class="dot">●</span> SwarajFleet — Demo Video</h1>
+    <div class="sub">SIH26123 · Smart India Hackathon 2026 · Team_Null_Pointer — stop-and-wait (full view) vs SwarajFleet on the identical world</div>
+  </header>
+
+  <div class="wrap">
+    <div class="card">
+      <video src="SIH26123-DEMO.mp4" controls playsinline preload="metadata"></video>
+      <div class="row">
+        <span class="pill"><b>70 s</b> · 720p · zero collisions</span>
+        <span class="pill">baseline: <b style="color:var(--red)">deadlocks 94%</b> of dense runs</span>
+        <span class="pill">SwarajFleet: <b style="color:var(--green)">completes 100%</b></span>
+        <div class="btns">
+          <a class="btn" href="SIH26123-DEMO.mp4" download>Download MP4 (5.3 MB)</a>
+          <a class="btn primary" href="index.html">▶ Live simulation</a>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="row" style="margin-top:0">
+        <span class="pill">scale lock: <b>20 &amp; 50 robots</b> · 240 runs</span>
+        <span class="pill">@20: baseline <b style="color:var(--red)">0/30 worlds</b> · ours <b style="color:var(--green)">21–24/30</b></span>
+        <span class="pill">@50: <b style="color:var(--green)">98.6% of 1500 tasks</b> · 0 collisions</span>
+        <div class="btns">
+          <a class="btn primary" href="index.html">☠️ Try the dead-zone drill live</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    SwarajFleet — every robot is its own coordinator ·
+    <a href="index.html">run the live simulation</a>
+  </footer>
+</body>
+</html>

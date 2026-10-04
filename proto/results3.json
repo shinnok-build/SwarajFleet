@@ -1,0 +1,56 @@
+{
+  "agents_3:A": {
+    "stopwait": {
+      "ok_trials": 21,
+      "trials": 30,
+      "task_time_med": 27,
+      "collisions": 0,
+      "deadlocks": 9
+    },
+    "swaraj": {
+      "ok_trials": 29,
+      "trials": 30,
+      "task_time_med": 24,
+      "collisions": 0,
+      "deadlocks": 1
+    },
+    "head2head_trials": 21,
+    "head2head_tasktime_pct": 14.8
+  },
+  "agents_3:B": {
+    "stopwait": {
+      "ok_trials": 19,
+      "trials": 30,
+      "task_time_med": 32,
+      "collisions": 0,
+      "deadlocks": 11
+    },
+    "swaraj": {
+      "ok_trials": 30,
+      "trials": 30,
+      "task_time_med": 27.5,
+      "collisions": 0,
+      "deadlocks": 0
+    },
+    "head2head_trials": 19,
+    "head2head_tasktime_pct": 18.8
+  },
+  "agents_3:C": {
+    "stopwait": {
+      "ok_trials": 26,
+      "trials": 30,
+      "task_time_med": 24.5,
+      "collisions": 0,
+      "deadlocks": 4
+    },
+    "swaraj": {
+      "ok_trials": 30,
+      "trials": 30,
+      "task_time_med": 24.0,
+      "collisions": 0,
+      "deadlocks": 0
+    },
+    "head2head_trials": 26,
+    "head2head_tasktime_pct": 2.0
+  }
+}

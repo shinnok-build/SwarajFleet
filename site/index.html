@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SwarajFleet — Live Simulation · SIH26123</title>
+<meta name="description" content="Interactive simulation of the SwarajFleet decentralized AMR coordination protocol (SIH 2026, PS SIH26123). Runs the actual protocol 100% in your browser — stop-and-wait vs SwarajFleet, same seed.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SwarajFleet — Live Simulation · SIH26123">
+<meta property="og:description" content="Two AMR fleets, one warehouse, same seed: textbook stop-and-wait deadlocks, the single-broadcast SwarajFleet protocol finishes. 100% client-side — no server.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B0E14'/%3E%3Cpath d='M8 22 L24 10' stroke='%23E87722' stroke-width='3' fill='none'/%3E%3Ccircle cx='8' cy='22' r='3.5' fill='%23DEE4EE'/%3E%3Ccircle cx='24' cy='10' r='3.5' fill='%23E87722'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0B0E14; --panel:#10141C; --panel2:#141924; --line:#222A38; --line2:#2C3547;
+  --txt:#DEE4EE; --mut:#7C8799; --dim:#57627A;
+  --acc:#E87722; --acc2:#F0A35E; --ok:#3FB950; --bad:#E5534B; --info:#58A6FF;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,select,input{font-family:inherit;font-size:13px;color:var(--txt)}
+button{cursor:pointer;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;padding:6px 12px;transition:border-color .12s,background .12s}
+button:hover{border-color:#3A465E;background:#182031}
+button:active{transform:translateY(1px)}
+button.primary{background:#2A1D10;border-color:#5E3A1A;color:var(--acc2)}
+button.primary:hover{background:#332413}
+select,input[type=number]{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;padding:6px 8px;outline:none}
+select:focus,input:focus{border-color:#3A465E}
+kbd{font-family:var(--mono);font-size:10px;background:#161C28;border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:1px 5px;color:var(--mut)}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0D1118,#0B0E14)}
+.brand{display:flex;align-items:baseline;gap:12px;min-width:0}
+.brand .mark{font-family:var(--mono);font-weight:700;font-size:16px;letter-spacing:.14em;color:var(--txt)}
+.brand .mark b{color:var(--acc)}
+.brand .sub{color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.pill{font-family:var(--mono);font-size:10.5px;color:var(--mut);border:1px solid var(--line2);border-radius:999px;padding:3px 10px;white-space:nowrap}
+.pill .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dim);margin-right:6px;vertical-align:1px}
+.pill.live .dot{background:var(--ok);box-shadow:0 0 6px rgba(63,185,80,.7);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ---------- layout ---------- */
+main{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px 20px;max-width:1680px;margin:0 auto}
+.pane{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.pane-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.pane-head .name{font-family:var(--mono);font-size:12px;letter-spacing:.1em;font-weight:700}
+.pane-head .name .tag{font-weight:400;color:var(--mut);letter-spacing:0;margin-left:8px;font-size:11px}
+.pane.a .name{color:var(--bad)}
+.pane.b .name{color:var(--acc2)}
+.status{font-family:var(--mono);font-size:10.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--mut)}
+.status.run{color:var(--ok);border-color:rgba(63,185,80,.4)}
+.status.done{color:var(--info);border-color:rgba(88,166,255,.4)}
+.status.frozen{color:var(--bad);border-color:rgba(229,83,75,.5)}
+canvas{display:block;width:100%;height:auto;background:var(--bg)}
+.pane-kpis{display:flex;flex-wrap:wrap;gap:0;border-top:1px solid var(--line);background:var(--panel2)}
+.kpi{flex:1 1 0;min-width:72px;padding:8px 12px;border-right:1px solid var(--line)}
+.kpi:last-child{border-right:none}
+.kpi .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.kpi .v{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:1px}
+.kpi .v.warn{color:var(--acc2)} .kpi .v.bad{color:var(--bad)} .kpi .v.good{color:var(--ok)}
+
+/* ---------- control bar ---------- */
+.controls{grid-column:1 / -1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.controls .sep{width:1px;height:24px;background:var(--line2)}
+.controls label{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-right:5px}
+.h2h{grid-column:1 / -1;display:flex;align-items:center;justify-content:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;min-height:39px}
+.h2h b{color:var(--acc2)}
+.h2h .win{color:var(--ok);font-weight:700}
+
+/* ---------- event log ---------- */
+.log{grid-column:1 / -1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.log .h{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:7px;display:flex;justify-content:space-between}
+.log .rows{font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--mut);height:106px;overflow:hidden}
+.log .rows .t{color:var(--dim)}
+.log .rows .sw{color:var(--bad)} .log .rows .sf{color:var(--acc2)}
+.log .rows .ev{color:var(--txt)}
+
+/* ---------- footer ---------- */
+footer{padding:14px 20px 22px;max-width:1680px;margin:0 auto;color:var(--dim);font-size:11.5px;line-height:1.7}
+footer .row1{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:4px}
+footer .keys{font-family:var(--mono);font-size:10.5px}
+a{color:var(--info);text-decoration:none} a:hover{text-decoration:underline}
+
+/* ---------- kill dashboard overlay ---------- */
+.killed .controls,.killed .log,.killed .h2h,.killed .pane-kpis{display:none}
+.kchip{position:fixed;right:18px;bottom:18px;display:none;align-items:center;gap:12px;background:var(--panel2);border:1px solid rgba(229,83,75,.5);border-radius:8px;padding:9px 14px;font-family:var(--mono);font-size:11.5px;color:var(--bad);box-shadow:0 8px 28px rgba(0,0,0,.5)}
+.kchip.show{display:flex}
+.kchip button{padding:3px 10px;font-size:11px;color:var(--txt)}
+@media(max-width:1100px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="mark">SWARAJ<b>FLEET</b></div>
+    <div class="sub">decentralized AMR fleet coordination — one broadcast decides motion and task</div>
+  </div>
+  <div class="meta">
+    <span class="pill" id="pill-status"><span class="dot"></span><span id="pill-txt">PAUSED</span></span>
+    <span class="pill" id="pill-world">—</span>
+    <span class="pill" id="pill-engine">engine —</span>
+  </div>
+</header>
+
+<main id="main">
+  <section class="pane b">
+    <div class="pane-head">
+      <div class="name">SWARAJFLEET <span class="tag">single-broadcast protocol · no coordinator</span></div>
+      <div class="status" id="st-b">—</div>
+    </div>
+    <canvas id="cv-b" width="760" height="430"></canvas>
+    <div class="pane-kpis">
+      <div class="kpi"><div class="k">tick</div><div class="v" id="k-tick-b">0</div></div>
+      <div class="kpi"><div class="k">tasks done</div><div class="v" id="k-task-b">0/0</div></div>
+      <div class="kpi"><div class="k">min battery</div><div class="v" id="k-bat-b">100%</div></div>
+      <div class="kpi"><div class="k">collisions</div><div class="v good" id="k-coll-b">0</div></div>
+      <div class="kpi"><div class="k">yields</div><div class="v" id="k-yld-b">0</div></div>
+      <div class="kpi"><div class="k">re-assigns</div><div class="v" id="k-rel-b">0</div></div>
+      <div class="kpi"><div class="k">safety stops</div><div class="v" id="k-safe-b">0</div></div>
+    </div>
+  </section>
+
+  <section class="pane a">
+    <div class="pane-head">
+      <div class="name">STOP-AND-WAIT <span class="tag">baseline · full information · static priority</span></div>
+      <div class="status" id="st-a">—</div>
+    </div>
+    <canvas id="cv-a" width="760" height="430"></canvas>
+    <div class="pane-kpis">
+      <div class="kpi"><div class="k">tick</div><div class="v" id="k-tick-a">0</div></div>
+      <div class="kpi"><div class="k">tasks done</div><div class="v" id="k-task-a">0/0</div></div>
+      <div class="kpi"><div class="k">min battery</div><div class="v" id="k-bat-a">100%</div></div>
+      <div class="kpi"><div class="k">collisions</div><div class="v good" id="k-coll-a">0</div></div>
+      <div class="kpi"><div class="k">yields</div><div class="v" id="k-yld-a">0</div></div>
+      <div class="kpi"><div class="k">re-assigns</div><div class="v" id="k-rel-a">0</div></div>
+      <div class="kpi"><div class="k">safety stops</div><div class="v" id="k-safe-a">0</div></div>
+    </div>
+  </section>
+
+  <div class="controls" id="controls">
+    <button class="primary" id="btn-play">PLAY</button>
+    <button id="btn-step">STEP</button>
+    <div class="sep"></div>
+    <label>speed</label>
+    <select id="sel-speed">
+      <option value="4">1×</option><option value="1" selected>4×</option>
+      <option value="0.4">10×</option><option value="0.1">50×</option>
+    </select>
+    <div class="sep"></div>
+    <label>layout</label>
+    <select id="sel-layout"><option>A</option><option>B</option><option>C</option><option value="D">D · scale</option></select>
+    <label>fleet</label>
+    <select id="sel-fleet"><option>3</option><option>5</option><option selected>10</option><option>20</option></select>
+    <label>seed</label>
+    <input type="number" id="inp-seed" value="8" min="0" max="9999" style="width:74px">
+    <button id="btn-reseed">NEW SEED</button>
+    <button id="btn-reset">RESET</button>
+    <div class="sep"></div>
+    <button id="btn-deadzone" title="Freeze one robot's broadcast for 30 ticks (Wi-Fi dead zone). Peers see its last-known cell; the onboard safety layer holds the blind spot.">☠️ KILL A BROADCAST</button>
+    <button id="btn-kill" title="The dashboard is observe-only — hiding it never affects the fleet">KILL DASHBOARD</button>
+  </div>
+
+  <div class="h2h" id="h2h">Both fleets run in lockstep on the identical world — same seed, same tasks, same blockages.</div>
+
+  <div class="log">
+    <div class="h"><span>PROTOCOL EVENTS</span><span id="log-count">—</span></div>
+    <div class="rows" id="log-rows"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="row1">
+    <span>SwarajFleet · Team_Null_Pointer · Smart India Hackathon 2026 · PS SIH26123 (Bharat Electronics Limited)
+      <span id="repo-link"></span> <span>· <a href="demo.html">▶ demo video</a></span></span>
+    <span class="keys"><kbd>space</kbd> play/pause&nbsp; <kbd>s</kbd> step&nbsp; <kbd>r</kbd> reseed&nbsp; <kbd>d</kbd> dead-zone drill&nbsp; <kbd>k</kbd> kill dashboard</span>
+  </div>
+  <div>This page runs the actual protocol — a faithful port of <code>proto/swaraj.py</code> — 100% in your browser.
+  Nothing is pre-rendered; every tick is computed live. The baseline (stop-and-wait) is given <b>full information</b>: it is not a strawman.</div>
+</footer>
+
+<div class="kchip" id="kchip"><span>DASHBOARD OFFLINE — simulation continues</span><button id="btn-restore">RESTORE</button></div>
+
+<!-- ====================================================================== -->
+<!-- ENGINE — faithful JS port of proto/sim.py + proto/swaraj.py (deterministic) -->
+<!-- ====================================================================== -->
+<script id="engine">
+"use strict";
+/* Deterministic PRNG (splitmix32). Browser seed space: same seed => same world
+   and same run, always. (Not bit-compatible with Python's Mersenne Twister —
+   the seed space is documented as browser-local.) */
+function makeRng(seed) {
+  let a = (seed >>> 0) || 0x9E3779B9;
+  function next() {
+    a = (a + 0x9E3779B9) | 0;
+    let t = a ^ (a >>> 16); t = Math.imul(t, 0x21F0AAAD);
+    t ^= t >>> 15; t = Math.imul(t, 0x735A2D97); t ^= t >>> 15;
+    return (t >>> 0) / 4294967296;
+  }
+  return {
+    randInt(lo, hi) { return lo + Math.floor(next() * (hi - lo + 1)); },
+    shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(next() * (i + 1)); const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; } },
+  };
+}
+
+/* ---------- warehouse generation (port of make_warehouse) ---------- */
+function makeWarehouse(W, H, vAisles, hAisles, pocketEvery) {
+  if (pocketEvery === undefined) pocketEvery = 3;
+  const g = [];
+  for (let y = 0; y < H; y++) g.push(new Array(W).fill("#"));
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) g[y][x] = ".";
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
+    if (hAisles.indexOf(y) < 0 && vAisles.indexOf(x) < 0) g[y][x] = "#";
+  for (let yi = 0; yi < hAisles.length; yi++) {
+    const y = hAisles[yi];
+    for (let x = 1; x < W - 1; x++) {
+      if (vAisles.indexOf(x) >= 0 || (x - 1) % pocketEvery !== 0) continue;
+      const dy = (yi % 2 === 0) ? -1 : 1;
+      const cands = [y + dy, y - dy];
+      for (let k = 0; k < cands.length; k++) {
+        const py = cands[k];
+        if (py >= 1 && py <= H - 2 && g[py][x] === "#") { g[py][x] = "."; break; }
+      }
+    }
+  }
+  return g;
+}
+const LAYOUTS = {
+  A: { grid: makeWarehouse(19, 11, [1, 6, 11, 16], [1, 4, 6, 9]), v: [1, 6, 11, 16], h: [1, 4, 6, 9] },
+  B: { grid: makeWarehouse(21, 11, [1, 6, 11, 16], [1, 4, 6, 9]), v: [1, 6, 11, 16], h: [1, 4, 6, 9] },
+  C: { grid: makeWarehouse(19, 13, [1, 4, 8, 12, 16], [1, 4, 6, 9, 12]), v: [1, 4, 8, 12, 16], h: [1, 4, 6, 9, 12] },
+  D: { grid: [
+    "###################################",
+    "#.................................#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.................................#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.................................#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.................................#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.................................#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.................................#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.##.##.##.##.##.##.##.##.##.##.#.#",
+    "#.................................#",
+    "###################################",
+  ], v: [1, 7, 13, 19, 25, 31], h: [1, 4, 7, 10, 13, 16, 19] },
+};
+
+/* ---------- map ---------- */
+const DIRS = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+function buildMap(grid) {
+  const H = grid.length, W = grid[0].length;
+  const idx = (x, y) => y * W + x;
+  const free = new Set();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x] === ".") free.add(idx(x, y));
+  const adj = {};
+  free.forEach((c) => {
+    const x = c % W, y = (c / W) | 0;
+    const out = [];
+    for (let d = 0; d < 4; d++) {
+      const nx = x + DIRS[d][0], ny = y + DIRS[d][1];
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const ni = idx(nx, ny);
+      if (free.has(ni)) out.push(ni);
+    }
+    adj[c] = out;
+  });
+  return { H, W, idx, free, adj, freeList: Array.from(free) };
+}
+
+/* ---------- A* (port of sim.astar; deterministic heap ordering: f, g, cell) ---------- */
+function astar(map, start, goal, costFn) {
+  if (start === goal) return { cost: 0, path: [start] };
+  const W = map.W;
+  const h = (c) => Math.abs(c % W - goal % W) + Math.abs(((c / W) | 0) - ((goal / W) | 0));
+  const heap = []; // [f, g, cell]
+  const gScore = new Map([[start, 0]]);
+  const came = new Map([[start, -1]]);
+  function push(item) {
+    heap.push(item);
+    let i = heap.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (heapCmp(heap[i], heap[p]) < 0) { const t = heap[i]; heap[i] = heap[p]; heap[p] = t; i = p; } else break;
+    }
+  }
+  function pop() {
+    const top = heap[0], last = heap.pop();
+    if (heap.length) { heap[0] = last; let i = 0;
+      for (;;) {
+        let l = 2 * i + 1, r = l + 1, m = i;
+        if (l < heap.length && heapCmp(heap[l], heap[m]) < 0) m = l;
+        if (r < heap.length && heapCmp(heap[r], heap[m]) < 0) m = r;
+        if (m === i) break;
+        const t = heap[i]; heap[i] = heap[m]; heap[m] = t; i = m;
+      }
+    }
+    return top;
+  }
+  // tie-break exactly like Python's (f, g, (x, y)) tuple ordering: x first, then y
+  function heapCmp(a, b) {
+    if (a[0] !== b[0]) return a[0] - b[0];
+    if (a[1] !== b[1]) return a[1] - b[1];
+    const ax = a[2] % W, ay = (a[2] / W) | 0, bx = b[2] % W, by = (b[2] / W) | 0;
+    if (ax !== bx) return ax - bx;
+    return ay - by;
+  }
+  push([h(start), 0, start]);
+  while (heap.length) {
+    const item = pop();
+    const f = item[0], gs = item[1], cur = item[2];
+    if (cur === goal) {
+      const path = [];
+      let c = cur;
+      while (c !== -1) { path.push(c); c = came.get(c); }
+      path.reverse();
+      return { cost: gs, path };
+    }
+    if (gs > (gScore.get(cur) ?? Infinity)) continue;
+    for (const nb of map.adj[cur]) {
+      const ng = gs + 1 + (costFn ? costFn(nb) : 0);
+      if (ng < (gScore.get(nb) ?? Infinity)) {
+        gScore.set(nb, ng); came.set(nb, cur);
+        push([ng + h(nb), ng, nb]);
+      }
+    }
+  }
+  return null;
+}
+
+/* ---------- congestion planner (port of make_planner) ---------- */
+function makePlanner(agent, map, usage, LAMBDA, THRESH, blockSet) {
+  let maxu = 1;
+  usage.forEach((v) => { if (v > maxu) maxu = v; });
+  const goal = agent.goal;
+  return function (cell) {
+    if (cell === goal) return 0;
+    let c = 0;
+    const u = usage.get(cell) || 0;
+    if (u >= THRESH) c += LAMBDA * u / maxu;
+    if (blockSet && blockSet.has(cell)) c += 50;
+    return c;
+  };
+}
+
+/* ---------- world spec (port of setup_trial_v2) ---------- */
+function createWorld(layoutName, n, seed) {
+  const spec = LAYOUTS[layoutName];
+  const map = buildMap(spec.grid);
+  const rng = makeRng(seed + 7);
+  const pockets = map.freeList.filter((c) =>
+    spec.v.indexOf(c % map.W) < 0 && spec.h.indexOf((c / map.W) | 0) < 0);
+  rng.shuffle(pockets);
+  const homes = pockets.slice(0, n);
+  const used = new Set(homes);
+  const pool = map.freeList.filter((c) => !used.has(c));
+  rng.shuffle(pool);
+  const tasks = [];
+  let i = 0;
+  while (tasks.length < n && i + 1 < pool.length) {
+    const pu = pool[i], dr = pool[i + 1]; i += 2;
+    if (pu === dr) continue;
+    tasks.push({ pu, dr });
+    used.add(pu); used.add(dr);
+  }
+  // one transient blockage per trial (benchmark world spec), at an aisle
+  // intersection that is not also a dock or task endpoint
+  const crosses = map.freeList.filter((c) => !used.has(c) && map.adj[c].length === 4);
+  rng.shuffle(crosses);
+  const blocks = crosses.slice(0, 1).map((c) => {
+    const t0 = rng.randInt(8, 20), dur = rng.randInt(20, 35);
+    return { cell: c, t0, t1: t0 + dur };
+  });
+  return { layout: layoutName, n, seed, map, homes, tasks, blocks, pockets,
+           aisles: { v: spec.v, h: spec.h } };
+}
+
+/* Build a world from an explicit spec (used by the headless test harness to
+   run the exact same worlds as the Python benchmark). */
+function createWorldFromSpec(layoutName, homesXY, tasksXY, blocksSpec) {
+  const spec = LAYOUTS[layoutName];
+  const map = buildMap(spec.grid);
+  const I = (xy) => map.idx(xy[0], xy[1]);
+  const homes = homesXY.map(I);
+  const tasks = tasksXY.map((t) => ({ pu: I(t[0]), dr: I(t[1]) }));
+  const blocks = blocksSpec.map((b) => ({ cell: I(b.cell), t0: b.t0, t1: b.t1 }));
+  const pockets = map.freeList.filter((c) =>
+    spec.v.indexOf(c % map.W) < 0 && spec.h.indexOf((c / map.W) | 0) < 0);
+  const n = homes.length;
+  return { layout: layoutName, n, seed: -1, map, homes, tasks, blocks, pockets,
+           aisles: { v: spec.v, h: spec.h } };
+}
+
+/* ---------- agent / task factories ---------- */
+function makeAgent(aid, home) {
+  return { aid, pos: home, home, wait: 0, tempTop: false, owedYield: false,
+           usage: new Map(), path: [], hist: [], stateTask: "IDLE", tid: -1,
+           hold: 0, battery: 100 };
+}
+function batteryTick(a, moved) {
+  if (a.stateTask === "CARRY" && moved) a.battery -= 0.6;
+  else if (moved) a.battery -= 0.4;
+  else if (a.stateTask === "IDLE") a.battery -= 0.03;
+  else a.battery -= 0.1;
+  if (a.battery < 0) a.battery = 0;
+}
+const RELEASE_WAIT = 20, PICK_HOLD = 1, DROP_HOLD = 1;
+
+/* ---------- shared task controller (port of sim.task_tick) ---------- */
+function taskTick(agents, tasks, roRank, t, blocks, intent, pockets, map) {
+  const goal = new Map(), W = map.W;
+  const dist = (a, b) => Math.abs(a % W - b % W) + Math.abs(((a / W) | 0) - ((b / W) | 0));
+  for (const a of agents)
+    if (a.stateTask === "HOME" && a.pos === a.home) a.stateTask = "IDLE";
+  // dock courtesy (deterministic election by ro_rank order)
+  const sorted = agents.slice().sort((x, y) => cmpRank(roRank.get(x.aid), roRank.get(y.aid)));
+  let docks = 0;
+  for (const a of sorted) {
+    if (a.stateTask !== "IDLE" || a.pos !== a.home) continue;
+    let needed = false;
+    for (const b of agents)
+      if (b.aid !== a.aid && b.stateTask === "CARRY" && intent.get(b.aid) && intent.get(b.aid)[0] === a.pos) { needed = true; break; }
+    if (!needed) continue;
+    const taken = new Set();
+    for (const x of agents) { taken.add(x.pos); taken.add(x.home);
+      const it = intent.get(x.aid); if (it) taken.add(it[0]); }
+    // Python: sorted(pockets, key=lambda c: (dist(a.pos, c), c)) — (x, y) tie-break
+    const cands = pockets.slice().sort((p1, p2) => {
+      const d = dist(a.pos, p1) - dist(a.pos, p2);
+      if (d !== 0) return d;
+      const x1 = p1 % W, x2 = p2 % W;
+      return x1 !== x2 ? x1 - x2 : ((p1 / W) | 0) - ((p2 / W) | 0);
+    });
+    for (const c of cands) {
+      if (taken.has(c) || c === a.pos) continue;
+      a.stateTask = "HOME"; a.home = c; a.wait = 0;
+      taken.add(c); docks++; break;
+    }
+  }
+  // release: TO_PICK robot blocked >= RELEASE_WAIT hands back the pickup point
+  let released = 0;
+  for (const a of agents) {
+    if (a.stateTask === "TO_PICK" && a.tid >= 0 && a.wait >= RELEASE_WAIT) {
+      const tk = tasks[a.tid];
+      if (tk.state === "HELD" && tk.holder === a.aid) { tk.state = "OPEN"; tk.holder = -1; }
+      a.stateTask = "HOME"; a.tid = -1; a.wait = 0;
+      released++;
+    }
+  }
+  // claims: each OPEN task -> IDLE robot minimizing (dist to pickup, ro_rank)
+  for (let ti = 0; ti < tasks.length; ti++) {
+    const tk = tasks[ti];
+    if (tk.state !== "OPEN") continue;
+    const cands = agents.filter((a) => a.stateTask === "IDLE");
+    if (!cands.length) continue;
+    cands.sort((x, y) => {
+      const d = dist(x.pos, tk.pu) - dist(y.pos, tk.pu);
+      return d !== 0 ? d : cmpRank(roRank.get(x.aid), roRank.get(y.aid));
+    });
+    const w = cands[0];
+    tk.state = "HELD"; tk.holder = w.aid;
+    w.stateTask = "TO_PICK"; w.tid = ti;
+  }
+  for (const a of agents) {
+    if (a.stateTask === "IDLE" || a.stateTask === "HOME") goal.set(a.aid, a.home);
+    else { const tk = tasks[a.tid]; goal.set(a.aid, a.stateTask === "TO_PICK" ? tk.pu : tk.dr); }
+  }
+  return { goal, released, docks };
+}
+function cmpRank(ra, rb) {
+  for (let i = 0; i < Math.max(ra.length, rb.length); i++) {
+    const a = ra[i] ?? Infinity, b = rb[i] ?? Infinity;
+    if (a !== b) return a - b;
+  }
+  return 0;
+}
+function blockActive(blocks, tick, cell) {
+  for (const b of blocks) if (b.cell === cell && b.t0 <= tick && tick < b.t1) return true;
+  return false;
+}
+
+/* ---------- right-of-way (port of run_swaraj_v2 ro_rank) ---------- */
+function computeRoRank(agents, t, roMode, tasks, W) {
+  const n = Math.max(1, agents.length), epoch = Math.floor(t / 25);
+  const out = new Map();
+  for (const a of agents) {
+    let rank;
+    if (a.tempTop) rank = [0, a.aid];
+    else if (a.stateTask === "CARRY") rank = [1, a.aid];
+    else if (roMode === "dist") {
+      // A/B harness variant: (2, manhattan-to-goal, rotating aid)
+      let tgt = a.home;
+      if (a.tid >= 0) { const tk = tasks[a.tid]; tgt = a.stateTask === "TO_PICK" ? tk.pu : tk.dr; }
+      const d = Math.abs(a.pos % W - tgt % W) + Math.abs(((a.pos / W) | 0) - ((tgt / W) | 0));
+      rank = [2, d, ((a.aid - epoch) % n + n) % n];
+    } else rank = [2, ((a.aid - epoch) % n + n) % n];
+    out.set(a.aid, rank);
+  }
+  return out;
+}
+
+/* =====================================================================
+   TickSim — one steppable system (system = "swaraj" | "baseline")
+   ===================================================================== */
+class TickSim {
+  constructor(world, system) {
+    this.world = world; this.system = system; this.map = world.map; this.W = this.map.W;
+    this.t = 0; this.events = [];
+    this.agents = world.homes.map((h, i) => makeAgent(i, h));
+    this.tasks = world.tasks.map((tk, i) => ({ ti: i, pu: tk.pu, dr: tk.dr, state: "OPEN", holder: -1 }));
+    this.blocks = world.blocks.map((b) => ({ cell: b.cell, t0: b.t0, t1: b.t1 }));
+    this.pockets = world.pockets.slice();
+    this.doneTasks = new Set();
+    this.collisions = 0; this.realocs = 0; this.dockShifts = 0;
+    this.minBattery = 100; this.yieldEvents = 0; this.maxWait = 0;
+    this.lastIntent = new Map(); this.lastMove = new Map();
+    this.goal = new Map(); this.inConflict = new Map(); this.holding = new Map();
+    this.flash = new Map(); // cell -> tick (render highlight)
+    this.stallTicks = 0; // consecutive no-move ticks
+    this.frozen = false; // sticky: set when stallTicks >= 60 (true deadlock, unrecoverable)
+    this.drop = null;      // dead-zone drill: { aid, t1, t2 } — aid's broadcast frozen on [t1, t2)
+    this.dropGhost = null; // last-known cell peers see while aid is dark
+    this.safetyStops = 0;  // onboard-sensor holds during the blind spot (counted, never hidden)
+    this.cap = 8000;
+    if (system === "baseline") this.WATCHDOG = 30;
+    else { this.WATCHDOG = 30; this.LAMBDA = 0.5; this.THRESH = 2.0; this.roMode = "rot"; }
+  }
+  get done() { return this.doneTasks.size >= this.tasks.length || this.t >= this.cap || this.frozen; }
+  get failed() { return this.doneTasks.size < this.tasks.length; }
+  result() {
+    return { taskTime: this.failed ? null : this.t, completed: this.doneTasks.size,
+             nTasks: this.tasks.length, collisions: this.collisions,
+             reallocations: this.realocs, minBattery: Math.round(this.minBattery * 10) / 10,
+             failed: this.failed, livelocked: this.failed && !this.frozen,
+             yieldEvents: this.yieldEvents, safetyStops: this.safetyStops };
+  }
+  log(kind, txt) { this.events.push({ t: this.t, kind, txt }); }
+  /* Dead-zone drill (port of swaraj.run_swaraj_v2 drop=...). While the window
+     is open, peers see aid's LAST-KNOWN cell (frozen broadcast); aid itself
+     keeps driving on its own local view; the onboard safety layer holds any
+     robot whose step would enter a ground-truth-occupied cell. */
+  setDrop(aid, t1, t2) { this.drop = { aid, t1, t2 }; this.dropGhost = null; }
+  dropActive() { return !!(this.drop && this.drop.t1 <= this.t && this.t < this.drop.t2); }
+
+  step() {
+    if (this.done) return null;
+    this.t++;
+    const t = this.t, map = this.map;
+    for (const b of this.blocks)
+      if (b.t0 <= t && t < b.t1 && this.agents.some((a) => a.pos === b.cell)) { b.t0 += 1; b.t1 += 1; this.log("blk", "block moved (cell occupied)"); }
+    const wall = (cell, tick) => blockActive(this.blocks, tick, cell);
+    const roRank = (this.system === "swaraj")
+      ? computeRoRank(this.agents, t, this.roMode, this.tasks, this.W)
+      : new Map(this.agents.map((a) => [a.aid, [1, a.aid]]));
+    const tt = taskTick(this.agents, this.tasks, roRank, t, this.blocks,
+                        this.system === "swaraj" ? this.lastIntent : this.lastMove,
+                        this.pockets, map);
+    this.goal = tt.goal;
+    this.realocs += tt.released; this.dockShifts += tt.docks;
+    if (tt.released) this.log("task", "task released after 20-tick block (handoff)");
+
+    const posSnap = new Map(this.agents.map((a) => [a.aid, a.pos]));
+    // DEAD ZONE (port of the run_swaraj_v2 ghost swap): peers see the dark
+    // robot's LAST-KNOWN cell. Ground truth (a.pos) is untouched.
+    if (this.system === "swaraj" && this.drop && this.drop.t1 <= t && t < this.drop.t2) {
+      if (this.dropGhost === null) {
+        this.dropGhost = posSnap.get(this.drop.aid);
+        this.log("dead", "☠️ DEAD ZONE: robot " + this.drop.aid + " broadcast frozen @ " +
+                 fmtCell(this.dropGhost, this.W) + " for " + (this.drop.t2 - this.drop.t1) + " ticks");
+      }
+      posSnap.set(this.drop.aid, this.dropGhost);
+    }
+    if (this.system === "swaraj" && this.drop && t === this.drop.t2)
+      this.log("dead", "📡 robot " + this.drop.aid + " rejoined — " + this.safetyStops +
+               " safety stops held the blind spot, " + this.collisions + " collisions");
+
+    if (this.system === "swaraj") this._swarajTick(t, wall, roRank, posSnap);
+    else this._baselineTick(t, wall, posSnap);
+
+    // freeze detection (rendering aid + early stop for deadlocked runs)
+    const anyMoved = this.agents.some((a) => a.pos !== posSnap.get(a.aid));
+    this.stallTicks = anyMoved ? 0 : this.stallTicks + 1;
+    if (this.stallTicks >= 60 && this.doneTasks.size < this.tasks.length) {
+      this.frozen = true;
+      this.log("fatal", "FROZEN — no robot moved for 60 ticks (deadlock)");
+    }
+    return { t, events: this.events.splice(0) };
+  }
+
+  /* ---- stop-and-wait baseline (port of sim.run_baseline_v2) ---- */
+  _baselineTick(t, wall, posSnap) {
+    const map = this.map;
+    const move = new Map();
+    for (const a of this.agents) this.holding.set(a.aid, false);
+    const byAid = this.agents.slice().sort((x, y) => x.aid - y.aid);
+    for (const a of byAid) {
+      const tk = a.tid >= 0 ? this.tasks[a.tid] : null;
+      if (a.stateTask === "TO_PICK" && tk && a.pos === tk.pu) {
+        a.hold++; if (a.hold >= PICK_HOLD) { a.stateTask = "CARRY"; a.hold = 0; }
+        move.set(a.aid, a.pos); continue;
+      }
+      if (a.stateTask === "CARRY" && tk && a.pos === tk.dr) {
+        a.hold++;
+        if (a.hold >= DROP_HOLD) {
+          tk.state = "DONE"; this.doneTasks.add(tk.ti);
+          a.stateTask = "IDLE"; a.tid = -1; a.hold = 0; a.owedYield = false;
+          this.log("task", "robot " + a.aid + " dropped task T" + (tk.ti + 1));
+        }
+        move.set(a.aid, a.pos); continue;
+      }
+      a.hold = 0;
+      const g = this.goal.get(a.aid);
+      const res = astar(map, a.pos, g);
+      if (!res || res.path.length < 2) { move.set(a.aid, a.pos); continue; }
+      const n1 = res.path[1];
+      let clash = wall(n1, t + 1);
+      if (!clash) {
+        for (const b of this.agents) {
+          if (b.aid === a.aid) continue;
+          if (move.has(b.aid)) {
+            const b1 = move.get(b.aid);
+            if (b1 === n1) { clash = true; break; }
+            if (b.pos === n1 && !(b1 !== b.pos && b1 !== a.pos)) { clash = true; break; }
+          } else if (b.pos === n1) { clash = true; break; }
+        }
+      }
+      move.set(a.aid, clash ? a.pos : n1);
+    }
+    this._checkCollisions(move, posSnap);
+    this._apply(move, posSnap);
+    for (const [aid, c] of move) this.lastMove.set(aid, c);
+  }
+
+  /* ---- SwarajFleet protocol (port of swaraj.run_swaraj_v2) ---- */
+  _swarajTick(t, wall, roRank, posSnap) {
+    const map = this.map, W = this.W;
+    // PERCEIVE (congestion from current positions; R=99 = all)
+    for (const a of this.agents) {
+      for (const b of this.agents)
+        if (b.aid !== a.aid) a.usage.set(b.pos, (a.usage.get(b.pos) || 0) + 1);
+    }
+    for (const a of this.agents) {
+      const dec = new Map();
+      a.usage.forEach((v, k) => { const d = v * 0.75; if (d >= 0.5) dec.set(k, d); });
+      a.usage = dec;
+    }
+    const goalsOf = new Set();
+    for (const a of this.agents) if (a.stateTask === "IDLE" || a.stateTask === "HOME") goalsOf.add(this.goal.get(a.aid));
+
+    const cand = new Map(), holding = new Map();
+    for (const a of this.agents) {
+      holding.set(a.aid, false);
+      const tk = a.tid >= 0 ? this.tasks[a.tid] : null;
+      if (a.stateTask === "TO_PICK" && tk && a.pos === tk.pu) {
+        a.hold++; if (a.hold >= PICK_HOLD) { a.stateTask = "CARRY"; a.hold = 0; }
+        cand.set(a.aid, [a.pos, a.pos]); holding.set(a.aid, true); continue;
+      }
+      if (a.stateTask === "CARRY" && tk && a.pos === tk.dr) {
+        a.hold++;
+        if (a.hold >= DROP_HOLD) {
+          tk.state = "DONE"; this.doneTasks.add(tk.ti);
+          a.stateTask = "IDLE"; a.tid = -1; a.hold = 0; a.owedYield = false;
+          this.log("task", "robot " + a.aid + " dropped task T" + (tk.ti + 1));
+        }
+        cand.set(a.aid, [a.pos, a.pos]); holding.set(a.aid, true); continue;
+      }
+      a.hold = 0;
+      const g = this.goal.get(a.aid);
+      a.goal = g;
+      const base = makePlanner(a, map, a.usage, this.LAMBDA, this.THRESH, null);
+      const cfn = (cell) => { let c = base(cell); if (wall(cell, t + 1)) c += 1e6; return c; };
+      const res = astar(map, a.pos, g, cfn);
+      if (!res || res.path.length < 2) { cand.set(a.aid, [a.pos, a.pos]); continue; }
+      const p = res.path.slice(1);
+      const n1 = p[0], n2 = p.length > 1 ? p[1] : p[0];
+      if (wall(n1, t + 1)) { cand.set(a.aid, [a.pos, a.pos]); continue; }
+      // RE-ROUTE around a persistent blocker (wait >= 8 straight ticks)
+      if (a.wait >= 8) {
+        const cfn2 = (cell) => { let c = base(cell); if (wall(cell, t + 1)) c += 1e6; if (cell === n1) c += 1e4; return c; };
+        const res2 = astar(map, a.pos, g, cfn2);
+        if (res2 && res2.path.length > 1) {
+          const p2 = res2.path.slice(1), nn1 = p2[0];
+          if (nn1 !== a.pos && !wall(nn1, t + 1) && nn1 !== n1) {
+            a.path = p2; cand.set(a.aid, [nn1, p2.length > 1 ? p2[1] : nn1]); continue;
+          }
+        }
+      }
+      // ANTI-OSCILLATION (X-Y-X-Y livelock pattern)
+      if (a.hist.length >= 4) {
+        const h = a.hist.slice(-4);
+        if (h[0] === h[2] && h[1] === h[3] && h[0] !== h[1] &&
+            (a.pos === h[0] || a.pos === h[1]) && (n1 === h[0] || n1 === h[1])) {
+          cand.set(a.aid, [a.pos, a.pos]); a.path = []; continue;
+        }
+      }
+      a.path = p;
+      cand.set(a.aid, [n1, n2]);
+    }
+
+    // SWAP RE-ROUTE (head-on pairs on pocketless aisles)
+    for (const a of this.agents) {
+      if (holding.get(a.aid)) continue;
+      const c = cand.get(a.aid);
+      if (c[0] === a.pos) continue;
+      let inSwap = false;
+      for (const b of this.agents) {
+        if (b.aid === a.aid || holding.get(b.aid)) continue;
+        const cb = cand.get(b.aid);
+        if (posSnap.get(b.aid) === c[0] && cb[0] === a.pos && cb[0] !== posSnap.get(b.aid)) { inSwap = true; break; }
+      }
+      if (!inSwap) continue;
+      const base = makePlanner(a, map, a.usage, this.LAMBDA, this.THRESH, null);
+      const cfnS = (cell) => { let cc = base(cell); if (wall(cell, t + 1)) cc += 1e6; if (cell === c[0]) cc += 1e4; return cc; };
+      const res2 = astar(map, a.pos, this.goal.get(a.aid), cfnS);
+      if (!res2 || res2.path.length < 2) continue;
+      const p2 = res2.path.slice(1), nn1 = p2[0];
+      if (nn1 === a.pos || nn1 === c[0] || wall(nn1, t + 1)) continue;
+      if (this.agents.some((x) => posSnap.get(x.aid) === nn1)) continue;
+      a.path = p2;
+      cand.set(a.aid, [nn1, p2.length > 1 ? p2[1] : nn1]);
+    }
+
+    // DECIDE pass 1 — conservative conflict map
+    const inConflict = new Map();
+    for (const a of this.agents) {
+      if (holding.get(a.aid)) { inConflict.set(a.aid, false); continue; }
+      const c = cand.get(a.aid); const n1 = c[0], n2 = c[1];
+      let mc = false;
+      for (const b of this.agents) {
+        if (b.aid === a.aid) continue;
+        const cb = cand.get(b.aid); const b1 = cb[0], b2 = cb[1];
+        if (n1 === posSnap.get(b.aid)) { mc = true; break; }
+        if (cmpRank(roRank.get(b.aid), roRank.get(a.aid)) >= 0) continue;
+        if (n1 === b1 || n2 === b2 || (n2 === b1 && b2 === n1)) { mc = true; break; }
+      }
+      inConflict.set(a.aid, mc);
+    }
+    this.inConflict = inConflict;
+
+    const move = new Map();
+    for (const a of this.agents) {
+      if (holding.get(a.aid)) { move.set(a.aid, a.pos); continue; }
+      const c = cand.get(a.aid); const n1 = c[0];
+      const rank = (x) => roRank.get(x.aid);
+      if (n1 === a.pos) {
+        const parkedMustClear = a.stateTask !== "CARRY" &&
+          this.agents.some((y) => y.stateTask === "CARRY" && cmpRank(rank(y), rank(a)) < 0 && cand.get(y.aid)[0] === a.pos);
+        if (parkedMustClear) {
+          const nb = this._yieldCell(a, cand, posSnap, goalsOf, inConflict, rank, wall, t, a.home, true);
+          if (nb !== null) { move.set(a.aid, nb); a.path = []; this.yieldEvents++; this.flash.set(nb, t); this.log("yield", "robot " + a.aid + " clears for carrier"); }
+          else move.set(a.aid, a.pos);
+        } else move.set(a.aid, a.pos);
+        continue;
+      }
+      if (!inConflict.get(a.aid)) { move.set(a.aid, n1); continue; }
+      // conflicted: the MIN-RANK targeter proceeds when n1 is free / deterministically freeing
+      const targeters = this.agents.filter((x) => !holding.get(x.aid) && cand.get(x.aid)[0] === n1 && cand.get(x.aid)[0] !== posSnap.get(x.aid));
+      let canProceed = targeters.length > 0 && targeters.reduce((m, x) => cmpRank(rank(x), rank(m)) < 0 ? x : m, targeters[0]).aid === a.aid;
+      if (canProceed) {
+        const occ = this.agents.filter((x) => posSnap.get(x.aid) === n1);
+        if (!occ.length) { /* free cell */ }
+        else {
+          const b = occ[0]; const cb = cand.get(b.aid); const b1 = cb[0];
+          if (!inConflict.get(b.aid)) canProceed = (b1 !== posSnap.get(b.aid) && b1 !== a.pos);
+          else canProceed = (a.stateTask === "CARRY" && b.stateTask !== "CARRY" &&
+                              cmpRank(rank(a), rank(b)) < 0 && this._hasYieldCell(b, cand, posSnap, goalsOf, inConflict, rank, wall, t));
+        }
+      }
+      if (canProceed) { move.set(a.aid, n1); continue; }
+      const mustClear = a.stateTask !== "CARRY" &&
+        this.agents.some((y) => y.stateTask === "CARRY" && cmpRank(rank(y), rank(a)) < 0 && cand.get(y.aid)[0] === a.pos);
+      let moved = false;
+      if ((!a.owedYield && a.wait < 6) || a.wait >= 2 * this.WATCHDOG || mustClear) {
+        const nb = this._yieldCell(a, cand, posSnap, goalsOf, inConflict, rank, wall, t, this.goal.get(a.aid), false);
+        if (nb !== null) {
+          move.set(a.aid, nb); a.path = []; this.yieldEvents++; this.flash.set(nb, t);
+          this.log("yield", "robot " + a.aid + " yields to pocket " + fmtCell(nb, W) + (a.wait >= this.WATCHDOG ? " (watchdog)" : ""));
+          moved = true;
+        }
+      }
+      if (!moved) move.set(a.aid, a.pos);
+    }
+
+    // LOCAL SAFETY LAYER (port of run_swaraj_v2: the onboard sensor stop on
+    // every real AMR). While the dark robot's broadcast is frozen, peers are
+    // blind to its live cell — so any step into a ground-truth-occupied cell
+    // is held HERE and counted. Never hidden.
+    if (this.drop && this.drop.t1 <= t && t < this.drop.t2) {
+      for (const a of this.agents) {
+        const tgt = move.get(a.aid);
+        if (tgt !== a.pos && this.agents.some((b) => b.aid !== a.aid && b.pos === tgt)) {
+          move.set(a.aid, a.pos);
+          this.safetyStops++;
+          this.log("safe", "🛡️ safety stop: robot " + a.aid + " held (dead-zone blind spot)");
+        }
+      }
+    }
+    this._checkCollisions(move, posSnap);
+    this._apply(move, posSnap);
+    // BROADCAST — publish 2-step intent for the next tick
+    for (const a of this.agents) {
+      if (holding.get(a.aid)) continue;
+      if (this.drop && a.aid === this.drop.aid && this.drop.t1 <= t && t < this.drop.t2) continue; // frozen: peers keep last-known intent
+      const res = astar(map, a.pos, this.goal.get(a.aid));
+      const p = (res && res.path.length > 1) ? res.path.slice(1) : [];
+      const i1 = p.length ? p[0] : a.pos;
+      const i2 = p.length > 1 ? p[1] : (p.length ? p[0] : a.pos);
+      this.lastIntent.set(a.aid, [i1, i2]);
+    }
+    // watchdog
+    for (const a of this.agents) {
+      if (a.wait >= this.WATCHDOG && !a.tempTop) { a.tempTop = true; a.owedYield = true; this.log("wd", "watchdog: robot " + a.aid + " granted temp top priority (" + a.wait + " ticks)"); }
+      if (a.wait === 0) a.tempTop = false;
+    }
+    if (this.onTick) this.onTick({ t, posSnap, cand, move, lastIntent: this.lastIntent, goal: this.goal });
+  }
+
+  _yieldCell(a, cand, posSnap, goalsOf, inConflict, rank, wall, t, sortTarget, isParking) {
+    const map = this.map, W = this.W;
+    const dist = (c, d) => Math.abs(c % W - d % W) + Math.abs(((c / W) | 0) - ((d / W) | 0));
+    // stable sort by distance only: ties keep adjacency order (same as Python's stable sorted())
+    const nbs = map.adj[a.pos].slice().sort((p1, p2) => dist(p1, sortTarget) - dist(p2, sortTarget));
+    const n1 = cand.get(a.aid)[0];
+    for (const nb of nbs) {
+      if (nb === n1 || wall(nb, t + 1)) continue;
+      if (this.agents.some((x) => posSnap.get(x.aid) === nb)) continue;
+      const targeted = isParking
+        ? this.agents.some((x) => !this.holding.get(x.aid) && cand.get(x.aid)[0] !== posSnap.get(x.aid) && cand.get(x.aid)[0] === nb)
+        : this.agents.some((x) => !this.holding.get(x.aid) && cand.get(x.aid)[0] === nb);
+      if (targeted) continue;
+      if (goalsOf.has(nb)) continue;
+      if (this.agents.some((y) => inConflict.get(y.aid) && cmpRank(rank(y), rank(a)) < 0 && map.adj[y.pos].indexOf(nb) >= 0)) continue;
+      return nb;
+    }
+    return null;
+  }
+  _hasYieldCell(b, cand, posSnap, goalsOf, inConflict, rank, wall, t) {
+    const map = this.map, W = this.W;
+    // Python: sorted(m.adj[b.pos], key=lambda c: c) — (x, y) tuple order
+    const nbs = map.adj[b.pos].slice().sort((p1, p2) => {
+      const x1 = p1 % W, x2 = p2 % W;
+      return x1 !== x2 ? x1 - x2 : ((p1 / W) | 0) - ((p2 / W) | 0);
+    });
+    const n1 = cand.get(b.aid)[0];
+    for (const nb of nbs) {
+      if (nb === n1 || wall(nb, t + 1)) continue;
+      if (this.agents.some((x) => posSnap.get(x.aid) === nb)) continue;
+      if (this.agents.some((x) => !this.holding.get(x.aid) && cand.get(x.aid)[0] === nb)) continue;
+      if (goalsOf.has(nb)) continue;
+      if (this.agents.some((y) => inConflict.get(y.aid) && cmpRank(rank(y), rank(b)) < 0 && map.adj[y.pos].indexOf(nb) >= 0)) continue;
+      return true;
+    }
+    return false;
+  }
+
+  _checkCollisions(move, posSnap) {
+    const A = this.agents;
+    for (let i = 0; i < A.length; i++) for (let j = i + 1; j < A.length; j++) {
+      const a = A[i], b = A[j];
+      if (move.get(a.aid) === move.get(b.aid)) { this.collisions++; this.log("fatal", "COLLISION robot " + a.aid + " / " + b.aid); }
+      if (move.get(a.aid) === posSnap.get(b.aid) && move.get(b.aid) === posSnap.get(a.aid)) { this.collisions++; this.log("fatal", "EDGE-SWAP robot " + a.aid + " / " + b.aid); }
+    }
+  }
+  _apply(move, posSnap) {
+    for (const a of this.agents) {
+      const mv = move.get(a.aid);
+      const moved = mv !== a.pos;
+      if (moved) a.pos = mv;
+      batteryTick(a, moved);
+      a.hist = (a.hist.slice(-5)).concat(a.pos);
+      if (a.stateTask === "IDLE" && a.pos === a.home) a.wait = 0;
+      else a.wait = moved ? 0 : a.wait + 1;
+      if (a.battery < this.minBattery) this.minBattery = a.battery;
+      if (a.wait > this.maxWait) this.maxWait = a.wait;
+    }
+  }
+}
+
+function fmtCell(c, W) { return "(" + (c % W) + "," + ((c / W) | 0) + ")"; }
+function engineHash(src) {
+  let h = 5381;
+  for (let i = 0; i < src.length; i++) h = ((h << 5) + h + src.charCodeAt(i)) >>> 0;
+  return h.toString(16).padStart(8, "0");
+}
+if (typeof module !== "undefined" && module.exports)
+  module.exports = { makeRng, LAYOUTS, buildMap, astar, createWorld, createWorldFromSpec, TickSim, cmpRank, fmtCell };
+</script>
+
+<!-- ====================================================================== -->
+<!-- UI — rendering, controls, event log                                     -->
+<!-- ====================================================================== -->
+<script id="ui">
+"use strict";
+(function () {
+  // Auto-derives the source-repo link from the GitHub Pages URL
+  // (project pages: <user>.github.io/swarajfleet/ → github.com/user/swarajfleet).
+  // Set REPO_URL manually to override (e.g. for a custom domain).
+  function autoRepoUrl() {
+    try {
+      const h = location.hostname || "";
+      if (!/\.github\.io$/i.test(h)) return "";
+      const m = (location.pathname || "").match(/^\/([^/]+)\//);
+      if (m) return "https://github.com/" + h.split(".")[0] + "/" + m[1];
+    } catch (e) { /* non-browser environment */ }
+    return "";
+  }
+  const CFG = { REPO_URL: autoRepoUrl() };
+  const $ = (id) => document.getElementById(id);
+  const main = $("main");
+  const state = { running: false, speed: 1, layout: "A", fleet: 10, seed: 8,
+                  sims: null, last: 0, acc: 0, killed: false, drill: null };
+
+  /* ---------- world / sims ---------- */
+  function buildSims() {
+    let w = createWorld(state.layout, state.fleet, state.seed);
+    // fleets bigger than the layout's docks ride the scale warehouse instead.
+    // D x fleet 20 ships headless-verified seeds only (the browser density
+    // limit is documented in tests/site/engine.test.js); anything else gets
+    // the locked demo world so the auto-route always completes.
+    if (w.homes.length < state.fleet && state.layout !== "D") {
+      state.layout = "D";
+      $("sel-layout").value = "D";
+      let lockedSeed = "";
+      if (state.fleet === 20 && [1, 2, 4, 5, 6].indexOf(state.seed) < 0) {
+        state.seed = 1;
+        $("inp-seed").value = 1;
+        lockedSeed = " locked demo world (seed 1).";
+      }
+      w = createWorld("D", state.fleet, state.seed);
+      state.drillNote = "fleet " + state.fleet + " needs room — moved to the 21×35 scale warehouse (D)." + lockedSeed;
+    } else state.drillNote = null;
+    const b = new TickSim(w, "swaraj");
+    const a = new TickSim(w, "baseline");
+    if (state.layout === "D") { b.cap = 16000; a.cap = 16000; } // same horizon as the scale benchmark
+    state.sims = { b, a };
+    state.drill = null;
+    state.acc = 0;
+    $("log-rows").innerHTML = "";
+    $("log-count").textContent = "—";
+    $("pill-world").textContent = "layout " + state.layout + " · seed " + state.seed + " · " + state.fleet + " robots";
+    setH2h((state.drillNote ? state.drillNote + " " : "") + "Both fleets run in lockstep on the identical world — same seed, same tasks, same blockages.");
+    renderAll(true);
+    updateKpis();
+  }
+
+  /* ---------- stepping ---------- */
+  function stepOnce() {
+    const { b, a } = state.sims;
+    const eb = b.step(), ea = a.step();
+    if (eb) pushLog("sf", "SF", eb.events);
+    if (ea) pushLog("sw", "SW", ea.events);
+    if (b.done && a.done) setRunning(false);
+    checkDrill();
+    checkHead2Head();
+    renderAll(false);
+    updateKpis();
+  }
+  function checkDrill() {
+    const { b } = state.sims;
+    if (state.drill && !state.drill.summarized && b.t >= state.drill.t2 && !(b.done && state.sims.a.done)) {
+      state.drill.summarized = true;
+      const r = b.result();
+      setH2h("☠️ robot " + state.drill.aid + " rejoined after " + (state.drill.t2 - state.drill.t1) +
+        " dark ticks — fleet at " + r.completed + "/" + r.nTasks + " tasks, " + r.safetyStops +
+        " safety stops, <span class='win'>" + r.collisions + " collisions</span>. Run to completion for the verdict…");
+    }
+  }
+  function checkHead2Head() {
+    const { b, a } = state.sims;
+    if (state.drill && b.done && a.done && state.drill.summarized !== "final") {
+      const r = b.result();
+      const dark = Math.min(state.drill.t2, b.t) - state.drill.t1;
+      setH2h("☠️ DRILL VERDICT: robot " + state.drill.aid + " dark × " + dark + " ticks — SwarajFleet " +
+        (r.failed ? "reached " + r.completed + "/" + r.nTasks + " tasks" : "finished every task in " + r.taskTime + " ticks") +
+        " with " + r.safetyStops + " safety stops, <span class='win'>" + r.collisions + " collisions</span>. (Baseline pane = same world, no drill.)");
+      state.drill.summarized = "final";
+      return;
+    }
+    if (b.done && a.done && !state.drill) {
+      const bt = b.result().taskTime, at = a.result().taskTime;
+      if (bt != null && at != null) {
+        const d = at - bt, pct = Math.round(100 * d / at);
+        setH2h("Head-to-head: <b>SwarajFleet</b> finished <span class='win'>" + d + " ticks earlier (−" + pct + "%)</span> — same seed, same tasks.");
+      } else if (bt != null) {
+        setH2h("Head-to-head: <b>SwarajFleet</b> completed every task in " + bt + " ticks — the baseline <span class='win' style='color:var(--bad)'>" + (a.frozen ? "froze (deadlocked)" : "hit the cap") + "</span> at " + a.t + ".");
+      }
+    }
+  }
+  function setH2h(html) { $("h2h").innerHTML = html; }
+
+  /* ---------- log ---------- */
+  function pushLog(cls, tag, events) {
+    const el = $("log-rows");
+    for (const e of events) {
+      if (e.kind === "yield" && !e.txt.includes("watchdog")) continue; // keep the log signal-rich, not noisy
+      const row = document.createElement("div");
+      row.innerHTML = "<span class='t'>t=" + String(e.t).padStart(4) + "</span> <span class='" + cls + "'>" + tag + "</span> <span class='ev'>" + e.txt + "</span>";
+      el.prepend(row);
+    }
+    while (el.children.length > 30) el.removeChild(el.lastChild);
+    $("log-count").textContent = state.sims.b.t + " ticks";
+  }
+
+  /* ---------- KPIs / status ---------- */
+  function updateKpis() {
+    for (const k of ["b", "a"]) {
+      const s = state.sims[k];
+      const r = s.result();
+      $("k-tick-" + k).textContent = s.t;
+      $("k-task-" + k).textContent = r.completed + "/" + r.nTasks;
+      const bat = $("k-bat-" + k);
+      bat.textContent = r.minBattery + "%";
+      bat.className = "v" + (r.minBattery < 40 ? " bad" : r.minBattery < 70 ? " warn" : "");
+      const coll = $("k-coll-" + k);
+      coll.textContent = r.collisions;
+      coll.className = "v" + (r.collisions ? " bad" : " good");
+      $("k-yld-" + k).textContent = s.yieldEvents;
+      $("k-rel-" + k).textContent = s.realocs;
+      $("k-safe-" + k).textContent = s.safetyStops;
+      const st = $("st-" + k);
+      if (s.done && !s.failed) { st.textContent = "COMPLETE t=" + s.t; st.className = "status done"; }
+      else if (s.done && s.frozen) { st.textContent = "FROZEN (deadlock)"; st.className = "status frozen"; }
+      else if (s.done) { st.textContent = "STALLED (cap " + s.t + ")"; st.className = "status frozen"; }
+      else if (k === "b" && s.dropActive && s.dropActive()) { st.textContent = "☠️ DRILL t=" + s.t + " — robot " + s.drop.aid + " dark"; st.className = "status run"; }
+      else { st.textContent = "RUNNING t=" + s.t; st.className = "status run"; }
+    }
+    const drilling = state.sims.b.dropActive && state.sims.b.dropActive();
+    const dz = $("btn-deadzone");
+    dz.disabled = drilling || state.sims.b.done;
+    dz.textContent = drilling ? "☠️ DRILL RUNNING…" : "☠️ KILL A BROADCAST";
+  }
+  function setRunning(on) {
+    state.running = on;
+    $("btn-play").textContent = on ? "PAUSE" : "PLAY";
+    $("pill-status").classList.toggle("live", on);
+    $("pill-txt").textContent = on ? "SIMULATING" : "PAUSED";
+  }
+
+  /* ---------- rendering ---------- */
+  const COL = {
+    aisle: "#151B26", pocket: "#121822", off: "#0E1219", line: "#1C2432",
+    idle: "#39445A", home: "#46608F", topick: "#8A6A2A", carry: "#E87722",
+    acc: "rgba(232,119,34,", ok: "#3FB950", bad: "#E5534B",
+  };
+  const BODY_FONT = getComputedStyle(document.body).fontFamily;
+  const renderers = { b: makeRenderer("cv-b"), a: makeRenderer("cv-a") };
+  function makeRenderer(id) {
+    const cv = $(id), ctx = cv.getContext("2d");
+    return {
+      cv, ctx,
+      draw(s, dpr) {
+        const map = s.map, W = map.W, H = map.H;
+        const cw = cv.width, ch = cv.height;
+        const cs = Math.floor(Math.min(cw / W, ch / H));
+        const ox = Math.floor((cw - cs * W) / 2), oy = Math.floor((ch - cs * H) / 2);
+        const aisles = s.world.aisles;
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.fillStyle = COL.off; ctx.fillRect(0, 0, cw, ch);
+        const isPocket = new Set(s.pockets);
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+          const c = map.idx(x, y);
+          if (!map.free.has(c)) continue;
+          const onAisle = aisles.v.indexOf(x) >= 0 || aisles.h.indexOf(y) >= 0;
+          ctx.fillStyle = onAisle ? COL.aisle : (isPocket.has(c) ? COL.pocket : COL.off);
+          ctx.fillRect(ox + x * cs, oy + y * cs, cs - 1, cs - 1);
+        }
+        // tasks
+        for (const tk of s.tasks) {
+          if (tk.state === "DONE") continue;
+          mark(tk.pu, COL.carry === COL.carry ? "rgba(232,119,34,.55)" : "rgba(232,119,34,.55)", 0.5);
+          if (tk.state === "HELD") mark(tk.dr, "rgba(63,185,80,.55)", 0.5);
+        }
+        // blocks
+        for (const b of s.blocks) {
+          if (b.t0 <= s.t && s.t < b.t1) {
+            const pulse = 0.5 + 0.5 * Math.sin(s.t / 4);
+            cell(b.cell, "rgba(229,83,75," + (0.28 + 0.22 * pulse) + ")");
+            xmark(b.cell);
+          }
+        }
+        // dead-zone drill: ghost = frozen last-known cell (red ✖ + dashed square)
+        if (s.dropActive && s.dropActive() && s.dropGhost !== null) {
+          xmark(s.dropGhost);
+          const gx = s.dropGhost % W, gy = (s.dropGhost / W) | 0;
+          ctx.strokeStyle = "rgba(229,83,75,.9)"; ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 3]);
+          ctx.strokeRect(ox + gx * cs + 1, oy + gy * cs + 1, cs - 3, cs - 3);
+          ctx.setLineDash([]);
+        }
+        // yield flashes
+        s.flash.forEach((tick, c) => {
+          if (s.t - tick < 3) cell(c, "rgba(63,185,80," + (0.35 * (1 - (s.t - tick) / 3)) + ")");
+        });
+        // intents
+        for (const a of s.agents) {
+          const it = s.lastIntent.get(a.aid) || s.lastMove.get(a.aid);
+          if (!it) continue;
+          const p1 = Array.isArray(it) ? it : [it, it];
+          ctx.strokeStyle = "rgba(124,135,153,.4)";
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(ox + (a.pos % W) * cs + cs / 2, oy + ((a.pos / W) | 0) * cs + cs / 2);
+          ctx.lineTo(ox + (p1[0] % W) * cs + cs / 2, oy + ((p1[0] / W) | 0) * cs + cs / 2);
+          if (p1[1] !== p1[0]) ctx.lineTo(ox + (p1[1] % W) * cs + cs / 2, oy + ((p1[1] / W) | 0) * cs + cs / 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        // robots
+        for (const a of s.agents) {
+          const x = a.pos % W, y = (a.pos / W) | 0;
+          const px = ox + x * cs, py = oy + y * cs;
+          const col = a.stateTask === "CARRY" ? COL.carry : a.stateTask === "TO_PICK" ? COL.topick : a.stateTask === "HOME" ? COL.home : COL.idle;
+          ctx.fillStyle = col;
+          roundRect(ctx, px + cs * 0.14, py + cs * 0.14, cs * 0.72, cs * 0.72, 3);
+          ctx.fill();
+          if (a.tempTop) { ctx.strokeStyle = "rgba(240,163,94,.9)"; ctx.lineWidth = 2; roundRect(ctx, px + cs * 0.1, py + cs * 0.1, cs * 0.8, cs * 0.8, 4); ctx.stroke(); }
+          if (s.dropActive && s.dropActive() && s.drop && a.aid === s.drop.aid) { ctx.strokeStyle = "rgba(229,83,75,.95)"; ctx.lineWidth = 2; roundRect(ctx, px + cs * 0.05, py + cs * 0.05, cs * 0.9, cs * 0.9, 5); ctx.stroke(); }
+          ctx.fillStyle = "#0B0E14";
+          ctx.font = "bold " + Math.max(8, cs * 0.34) + "px " + BODY_FONT;
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText(String(a.aid), px + cs / 2, py + cs / 2 + 0.5);
+          // battery bar
+          const bw = cs * 0.72, bx = px + cs * 0.14, by = py + cs * 0.14 + cs * 0.72 + 2;
+          ctx.fillStyle = "#1C2432"; ctx.fillRect(bx, by, bw, 2.5);
+          ctx.fillStyle = a.battery > 40 ? COL.ok : a.battery > 15 ? "#D29922" : COL.bad;
+          ctx.fillRect(bx, by, bw * a.battery / 100, 2.5);
+        }
+        function cell(c, fill) {
+          const x = c % W, y = (c / W) | 0;
+          ctx.fillStyle = fill;
+          ctx.fillRect(ox + x * cs, oy + y * cs, cs - 1, cs - 1);
+        }
+        function mark(c, fill, frac) {
+          const x = c % W, y = (c / W) | 0;
+          const s2 = cs * frac;
+          ctx.fillStyle = fill;
+          ctx.fillRect(ox + x * cs + (cs - s2) / 2, oy + y * cs + (cs - s2) / 2, s2, s2);
+        }
+        function xmark(c) {
+          const x = c % W, y = (c / W) | 0;
+          ctx.strokeStyle = "rgba(229,83,75,.8)"; ctx.lineWidth = 1.5;
+          const m = cs * 0.28, x0 = ox + x * cs + m, y0 = oy + y * cs + m, s3 = cs - 2 * m;
+          ctx.beginPath();
+          ctx.moveTo(x0, y0); ctx.lineTo(x0 + s3, y0 + s3);
+          ctx.moveTo(x0 + s3, y0); ctx.lineTo(x0, y0 + s3);
+          ctx.stroke();
+        }
+      },
+    };
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  function renderAll(first) {
+    for (const k of ["b", "a"]) {
+      const r = renderers[k];
+      r.draw(state.sims[k]);
+    }
+  }
+
+  /* ---------- main loop ---------- */
+  function frame(ts) {
+    if (!state.running) return;
+    if (!state.last) state.last = ts;
+    const dt = ts - state.last;
+    state.last = ts;
+    state.acc += dt;
+    const interval = 250 * state.speed;
+    let guard = 0;
+    while (state.acc >= interval && guard < 24) {
+      state.acc -= interval;
+      stepOnce();
+      guard++;
+      if (!state.running) break;
+    }
+    if (state.running) requestAnimationFrame(frame);
+  }
+  function play() {
+    if (state.sims.b.done && state.sims.a.done) return;
+    setRunning(true);
+    state.last = 0;
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- controls ---------- */
+  $("btn-play").onclick = () => state.running ? setRunning(false) : play();
+  $("btn-step").onclick = () => { if (!state.sims.b.done || !state.sims.a.done) { setRunning(false); stepOnce(); } };
+  $("sel-speed").onchange = (e) => { state.speed = parseFloat(e.target.value); };
+  function rebuild() { buildSims(); setRunning(false); }
+  $("sel-layout").onchange = (e) => { state.layout = e.target.value; rebuild(); };
+  $("sel-fleet").onchange = (e) => { state.fleet = parseInt(e.target.value, 10); rebuild(); };
+  $("inp-seed").onchange = (e) => { state.seed = Math.max(0, Math.min(9999, parseInt(e.target.value, 10) || 0)); rebuild(); };
+  $("btn-reseed").onclick = () => {
+    state.seed = Math.floor(Math.random() * 10000);
+    $("inp-seed").value = state.seed;
+    rebuild();
+  };
+  $("btn-reset").onclick = () => rebuild();
+  $("btn-kill").onclick = () => { state.killed = true; main.classList.add("killed"); $("kchip").classList.add("show"); };
+  $("btn-deadzone").onclick = () => {
+    const b = state.sims.b;
+    if (b.done || (b.dropActive && b.dropActive())) return;
+    // victim: lowest-aid robot currently doing delivery work (deterministic given the tick)
+    const busy = b.agents.filter((a) => a.stateTask === "CARRY" || a.stateTask === "TO_PICK")
+                         .sort((x, y) => x.aid - y.aid);
+    const victim = (busy.length ? busy[0] : b.agents.slice().sort((x, y) => x.aid - y.aid)[0]).aid;
+    const t1 = b.t + 1, t2 = b.t + 31; // 30 dark ticks — the locked Python proof's window
+    b.setDrop(victim, t1, t2);
+    state.drill = { aid: victim, t1, t2 };
+    setH2h("☠️ DEAD-ZONE DRILL: robot " + victim + "'s broadcast is frozen for 30 ticks — peers see only its last-known cell. " +
+      "Watch the red ✖ ghost vs the moving robot. Baseline pane = same world, no drill.");
+  };
+  $("btn-restore").onclick = () => { state.killed = false; main.classList.remove("killed"); $("kchip").classList.remove("show"); };
+  document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    if (e.code === "Space") { e.preventDefault(); $("btn-play").click(); }
+    else if (e.key === "s" || e.key === "S") $("btn-step").click();
+    else if (e.key === "r" || e.key === "R") $("btn-reseed").click();
+    else if (e.key === "k" || e.key === "K") $("btn-kill").click();
+    else if (e.key === "d" || e.key === "D") $("btn-deadzone").click();
+  });
+
+  /* ---------- boot ---------- */
+  const engineSrc = document.getElementById("engine").textContent;
+  $("pill-engine").textContent = "engine " + engineHash(engineSrc);
+  if (CFG.REPO_URL) $("repo-link").innerHTML = "· <a href='" + CFG.REPO_URL + "'>source</a>";
+  buildSims();
+  // responsive canvases
+  function fit() {
+    for (const k of ["b", "a"]) {
+      const r = renderers[k];
+      const w = Math.max(320, Math.min(900, r.cv.parentElement.clientWidth));
+      r.cv.width = Math.floor(w * (window.devicePixelRatio > 1.5 ? 1.5 : window.devicePixelRatio || 1));
+      r.cv.height = Math.floor(r.cv.width * 0.566);
+      renderAll(true);
+    }
+  }
+  fit();
+  window.addEventListener("resize", fit);
+  play(); // auto-start: the page is the demo
+})();
+</script>
+</body>
+</html>

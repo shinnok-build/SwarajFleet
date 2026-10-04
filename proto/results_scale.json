@@ -1,0 +1,90 @@
+{
+  "agents_10:D": {
+    "stopwait": {
+      "ok_trials": 4,
+      "trials": 30,
+      "task_time_med": 59.0,
+      "task_time_mean": 54.2,
+      "collisions": 0,
+      "deadlocks": 26,
+      "completed_sum": 231
+    },
+    "swaraj": {
+      "ok_trials": 30,
+      "trials": 30,
+      "task_time_med": 54.0,
+      "task_time_mean": 53.6,
+      "collisions": 0,
+      "deadlocks": 0,
+      "completed_sum": 300
+    },
+    "head2head_trials": 4,
+    "head2head_tasktime_pct": 0.0
+  },
+  "agents_20:D": {
+    "stopwait": {
+      "ok_trials": 0,
+      "trials": 30,
+      "task_time_med": null,
+      "task_time_mean": null,
+      "collisions": 0,
+      "deadlocks": 30,
+      "completed_sum": 331
+    },
+    "swaraj": {
+      "ok_trials": 24,
+      "trials": 30,
+      "task_time_med": 60.0,
+      "task_time_mean": 61.0,
+      "collisions": 0,
+      "deadlocks": 6,
+      "completed_sum": 591
+    },
+    "head2head_trials": 0,
+    "head2head_tasktime_pct": null
+  },
+  "agents_50:D": {
+    "stopwait": {
+      "ok_trials": 0,
+      "trials": 30,
+      "task_time_med": null,
+      "task_time_mean": null,
+      "collisions": 0,
+      "deadlocks": 30,
+      "completed_sum": 418
+    },
+    "swaraj": {
+      "ok_trials": 17,
+      "trials": 30,
+      "task_time_med": 100,
+      "task_time_mean": 192.1,
+      "collisions": 0,
+      "deadlocks": 13,
+      "completed_sum": 1479
+    },
+    "head2head_trials": 0,
+    "head2head_tasktime_pct": null
+  },
+  "agents_20:B": {
+    "stopwait": {
+      "ok_trials": 0,
+      "trials": 30,
+      "task_time_med": null,
+      "task_time_mean": null,
+      "collisions": 0,
+      "deadlocks": 30,
+      "completed_sum": 210
+    },
+    "swaraj": {
+      "ok_trials": 21,
+      "trials": 30,
+      "task_time_med": 53,
+      "task_time_mean": 90.4,
+      "collisions": 0,
+      "deadlocks": 9,
+      "completed_sum": 584
+    },
+    "head2head_trials": 0,
+    "head2head_tasktime_pct": null
+  }
+}

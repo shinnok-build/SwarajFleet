@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SWARAJFLEET — live decentralized fleet · TEAM_NULL_POINTER</title>
+<style>
+  :root{
+    --bg:#0a1018; --panel:#0d1626; --line:#1c2a42; --txt:#e8eef7;
+    --dim:#8fa3bf; --green:#3ddc84; --red:#ff4d5e; --amber:#f6a821;
+    --blue:#4da3ff; --kpi:#7d92b0;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{background:var(--bg); color:var(--txt);
+       font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       overflow:hidden; display:flex; flex-direction:column;}
+  /* ---------- top bar ---------- */
+  #top{display:flex; align-items:center; gap:12px; padding:9px 14px;
+       background:var(--panel); border-bottom:1px solid var(--line); flex:0 0 auto; z-index:5; flex-wrap:wrap;}
+  #brand{display:flex; align-items:center; gap:8px; font-weight:700; letter-spacing:.4px; font-size:14px;}
+  #dot{width:10px; height:10px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green);}
+  #brand .team{font-weight:600; color:var(--dim); font-size:11px; letter-spacing:.6px;}
+  #brand small{font-weight:500; color:#445673; font-size:10.5px;}
+  .seg{display:flex; background:#0a1220; border:1px solid var(--line); border-radius:9px; overflow:hidden;}
+  .seg button{appearance:none; border:0; background:transparent; color:var(--dim);
+       font:600 11.5px system-ui; padding:7px 11px; cursor:pointer; letter-spacing:.3px;}
+  .seg button:hover{color:var(--txt);}
+  .seg button.on{background:#16233c; color:var(--txt);}
+  .seg button.on.ours{color:var(--green);} .seg button.on.base{color:var(--red);}
+  .seg.dis{opacity:.35; pointer-events:none;}
+  #kpis{margin-left:auto; display:flex; gap:16px; font-size:11.5px; color:var(--kpi); letter-spacing:.6px;}
+  #kpis b{color:var(--txt); font-size:13px; font-variant-numeric:tabular-nums; letter-spacing:0;}
+  #kpis .g{color:var(--green);} #kpis .r{color:var(--red);} #kpis .a{color:#f6a821;}
+  #fps{color:#4d5f7d; font-size:10.5px; min-width:52px; text-align:right;}
+  #fps b{color:var(--txt);}
+  /* ---------- stage ---------- */
+  #stage{position:relative; flex:1 1 auto; min-height:0; display:flex;}
+  .panel{position:relative; flex:1 1 0; min-width:0; min-height:0;}
+  .panel + .panel{border-left:2px solid var(--line);}
+  .panel canvas{position:absolute; inset:0; width:100%; height:100%; display:block; cursor:crosshair;}
+  .pchip{position:absolute; top:10px; left:12px; z-index:4; display:flex; gap:8px; align-items:center;
+       font:700 12px system-ui; letter-spacing:.8px;}
+  .pchip .pd{width:8px;height:8px;border-radius:50%;}
+  .pchip.ours{color:var(--green);} .pchip.ours .pd{background:var(--green); box-shadow:0 0 6px var(--green);}
+  .pchip.base{color:var(--red);} .pchip.base .pd{background:var(--red); box-shadow:0 0 6px var(--red);}
+  .pkpi{position:absolute; top:10px; right:12px; z-index:4; font:600 11px system-ui;
+       color:var(--kpi); background:rgba(10,18,32,.7); border:1px solid var(--line);
+       border-radius:8px; padding:5px 10px; letter-spacing:.5px; font-variant-numeric:tabular-nums;}
+  .pkpi b{color:var(--txt);}
+  .presult{position:absolute; left:50%; bottom:56px; transform:translateX(-50%) translateY(16px);
+       background:rgba(13,22,38,.96); border:2px solid var(--line); border-radius:12px;
+       padding:12px 26px; text-align:center; z-index:6; opacity:0; pointer-events:none;
+       transition:opacity .4s, transform .4s; white-space:nowrap;}
+  .presult.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .presult h3{font-size:16px;} .presult p{font-size:11px; color:var(--dim); margin-top:3px;}
+  .presult.win{border-color:var(--green);} .presult.win h3{color:var(--green);}
+  .presult.lose{border-color:var(--red);} .presult.lose h3{color:var(--red);}
+  .pdead{position:absolute; top:22%; left:50%; transform:translate(-50%,-50%) scale(.95);
+       background:rgba(40,12,14,.94); border:3px solid var(--red); border-radius:14px;
+       padding:14px 34px; text-align:center; z-index:6; opacity:0; pointer-events:none;
+       transition:opacity .35s, transform .35s;}
+  .pdead.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
+  .pdead h2{font-size:30px; letter-spacing:5px; color:var(--red);}
+  .pdead p{color:#f3c9ce; font-size:11.5px; margin-top:5px;}
+  /* ---------- callout ---------- */
+  #callout{position:absolute; left:14px; bottom:52px; z-index:4; max-width:480px;
+       background:rgba(13,22,38,.94); border:1px solid var(--line); border-left:4px solid var(--green);
+       border-radius:10px; padding:11px 14px; opacity:0; transition:opacity .4s;}
+  #callout.show{opacity:1;}
+  #callout h4{font-size:11px; letter-spacing:1.2px; margin-bottom:3px;}
+  #callout p{font-size:12px; color:var(--dim); line-height:1.45;}
+  /* ---------- decision feed ---------- */
+  #feed{position:absolute; top:0; right:0; bottom:34px; width:308px; z-index:4;
+       background:rgba(9,15,26,.93); border-left:1px solid var(--line);
+       display:flex; flex-direction:column; transition:transform .3s;}
+  #feed.hide{transform:translateX(100%);}
+  #feedH{font:700 10.5px system-ui; letter-spacing:1.6px; color:var(--kpi); padding:10px 12px;
+       border-bottom:1px solid var(--line); display:flex; justify-content:space-between;}
+  #feedH span{color:#445673;}
+  #feedList{flex:1; overflow-y:auto; padding:6px 0; scrollbar-width:thin;}
+  .fe{padding:4px 12px; font-size:11.5px; line-height:1.45; border-left:3px solid transparent;}
+  .fe .t{color:#445673; font-variant-numeric:tabular-nums; margin-right:6px;}
+  .fe.yield{border-left-color:var(--amber); color:#d9c9a8;}
+  .fe.block{border-left-color:var(--amber); color:var(--txt);}
+  .fe.done{border-left-color:var(--green); color:#bfe9d2;}
+  .fe.wait{border-left-color:#5d7396; color:var(--dim);}
+  .fe.dead{border-left-color:var(--red); color:#f0b9bf; font-weight:600;}
+  .fe.reroute{border-left-color:var(--blue); color:#b9d4f0;}
+  .fe .tag{font-weight:700;} .fe .tag.ours{color:var(--green);} .fe .tag.base{color:var(--red);}
+  /* ---------- legend ---------- */
+  #legend{position:absolute; left:14px; top:44px; z-index:4; width:250px;
+       background:rgba(9,15,26,.95); border:1px solid var(--line); border-radius:12px;
+       padding:14px 16px; display:none;}
+  #legend.show{display:block;}
+  #legend h4{font-size:11px; letter-spacing:1.6px; color:var(--kpi); margin-bottom:10px;}
+  .lr{display:flex; align-items:center; gap:10px; font-size:12px; color:var(--dim); margin:8px 0;}
+  .sw{width:16px; height:16px; border-radius:50%; border:2px solid #fff; flex:0 0 auto;}
+  .ln{width:26px; border-top:2px dashed rgba(255,255,255,.6); flex:0 0 auto;}
+  .pad{width:15px; height:15px; border-radius:4px; background:rgba(20,80,52,.9); border:2px solid #2fbf71; flex:0 0 auto;}
+  #legend .keys{margin-top:12px; padding-top:10px; border-top:1px solid var(--line);
+       font-size:10.5px; color:#445673; line-height:1.7;}
+  /* ---------- scrubber ---------- */
+  #scrub{position:absolute; left:0; right:0; bottom:0; height:30px; z-index:5;
+       background:rgba(8,13,21,.92); border-top:1px solid var(--line); cursor:pointer;}
+  #scrubFill{position:absolute; left:0; top:0; bottom:0; width:0%; background:rgba(61,220,132,.14);}
+  #scrubThumb{position:absolute; top:4px; bottom:4px; width:3px; background:var(--green); border-radius:2px; left:0%;}
+  #scrubT{position:absolute; top:6px; left:10px; font:600 10px system-ui; color:var(--kpi); letter-spacing:.8px;}
+  /* ---------- onboarding ---------- */
+  #onboard{position:absolute; inset:0; z-index:10; background:rgba(5,9,16,.9);
+       display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px);}
+  #onboard .box{max-width:620px; background:var(--panel); border:1px solid var(--line);
+       border-radius:18px; padding:34px 40px;}
+  #onboard h2{font-size:26px; letter-spacing:.3px; margin-bottom:6px;}
+  #onboard .sub{color:var(--dim); font-size:13px; margin-bottom:18px;}
+  #onboard ul{list-style:none; margin-bottom:24px;}
+  #onboard li{font-size:13px; color:var(--dim); line-height:1.65; padding-left:20px; position:relative; margin:7px 0;}
+  #onboard li:before{content:""; position:absolute; left:0; top:7px; width:9px; height:9px;
+       border-radius:50%; background:var(--green);}
+  #onboard li:nth-child(2):before{background:var(--amber);}
+  #onboard li:nth-child(3):before{background:var(--blue);}
+  #onboard li:nth-child(4):before{background:var(--red);}
+  #startBtn{appearance:none; border:0; border-radius:12px; padding:14px 34px;
+       font:700 15px system-ui; letter-spacing:1px; cursor:pointer;
+       background:var(--green); color:#04140c;}
+  #startBtn:hover{filter:brightness(1.1);}
+  /* ---------- banners ---------- */
+  #offline{position:absolute; top:0; left:0; right:0; z-index:8; display:none;
+       background:var(--red); color:#fff; text-align:center; font:700 11.5px system-ui;
+       letter-spacing:1px; padding:5px;}
+  #offline.show{display:block;}
+  #caption{position:absolute; right:12px; bottom:38px; z-index:3; font-size:10px;
+       color:#3d5170; letter-spacing:.4px; text-align:right; line-height:1.6; pointer-events:none;}
+</style>
+</head>
+<body>
+<div id="top">
+  <div id="brand"><span id="dot"></span>SWARAJFLEET
+    <span class="team">TEAM_NULL_POINTER</span>
+    <small id="modeTag"></small>
+  </div>
+  <div class="seg" id="modeSeg">
+    <button data-m="live" class="on">LIVE</button>
+    <button data-m="replay">REPLAY</button>
+    <button data-m="vs">VS SPLIT</button>
+  </div>
+  <div class="seg" id="sysSeg">
+    <button data-s="ours" class="on ours">SWARAJFLEET</button>
+    <button data-s="baseline" class="base">STOP &amp; WAIT</button>
+  </div>
+  <div class="seg" id="spdSeg">
+    <button data-v="0.5">½×</button>
+    <button data-v="1" class="on">1×</button>
+    <button data-v="2">2×</button>
+    <button data-v="4">4×</button>
+  </div>
+  <div class="seg"><button id="pauseBtn">▶</button></div>
+  <div class="seg"><button id="stepBtn">⏭ STEP</button></div>
+  <div class="seg"><button id="rerunBtn">⟲ RERUN</button></div>
+  <div class="seg" id="camSeg">
+    <button data-c="overview" class="on">OVERVIEW</button>
+    <button data-c="follow">FOLLOW</button>
+  </div>
+  <div class="seg">
+    <button id="feedBtn" class="on">FEED</button>
+    <button id="legendBtn">LEGEND</button>
+  </div>
+  <div id="kpis">
+    <span>TICK <b id="kTick">000</b></span>
+    <span>TASKS <b id="kTasks">0/10</b></span>
+    <span>COLLISIONS <b id="kCol" class="g">0</b></span>
+    <span>BATTERY MIN <b id="kBat" class="g">100%</b></span>
+  </div>
+  <div id="fps"><b id="fpsV">60</b> FPS</div>
+</div>
+<div id="stage">
+  <div id="offline">STREAM OFFLINE — RECONNECTING…</div>
+  <div id="callout"><h4></h4><p></p></div>
+  <div id="legend">
+    <h4>HOW TO READ THIS</h4>
+    <div class="lr"><span class="sw" style="background:#f6a821"></span>going to pick up a task</div>
+    <div class="lr"><span class="sw" style="background:#4da3ff"></span>carrying a task to its drop point</div>
+    <div class="lr"><span class="sw" style="background:#93a1b5"></span>done / parked at a dock</div>
+    <div class="lr"><span class="ln"></span>intended next move (from its snapshot)</div>
+    <div class="lr"><span class="pad"></span>dock pad — the robot's home</div>
+    <div class="lr"><span class="sw" style="background:transparent;border-color:var(--amber)"></span>blocking obstacle in the aisle</div>
+    <div class="keys">click a robot → focus &amp; follow it<br>
+    SPACE play/pause · S step · ←/→ ±10 ticks<br>
+    FEED logs every decision as it happens</div>
+  </div>
+  <div id="feed"><div id="feedH">DECISION FEED <span>live</span></div><div id="feedList"></div></div>
+  <div id="scrub"><div id="scrubFill"></div><div id="scrubThumb"></div><div id="scrubT"></div></div>
+  <div id="caption">real protocol · 4 Hz tick stream · 60 fps interpolated · one data channel<br>
+    LAN = communication medium only · decisions stay on the robot · no cloud</div>
+</div>
+<div id="onboard"><div class="box">
+  <h2>Watch a fleet decide for itself</h2>
+  <div class="sub">10 robots · 10 tasks · one-robot-wide aisles · no central server</div>
+  <ul>
+    <li><b>SWARAJFLEET</b> completes every task — each robot reads the same shared snapshot and applies the rulebook: <b>yield · follow · wait</b>.</li>
+    <li><b>STOP &amp; WAIT</b> (baseline) uses static priority on the same seed — watch the aisle freeze into deadlock.</li>
+    <li>Use <b>STEP</b> to advance one decision at a time, the scrubber to travel, and <b>VS SPLIT</b> to see both systems side by side at the same tick.</li>
+    <li>Everything on screen is the <b>actual protocol</b> running in real time — nothing is scripted.</li>
+  </ul>
+  <button id="startBtn">▶&nbsp; START THE FLEET</button>
+</div></div>
+<script>
+"use strict";
+/* ================= constants / state ================= */
+const TICK_MS = 250;                     // server paces ticks at 4 Hz
+const $ = id => document.getElementById(id);
+const stage = $("stage");
+let W = 0, H = 0, DPR = 1;
+const S = {
+  mode: "live", system: "ours", speed: 1,
+  paused: true, started: false,
+  views: [], es: null, cid: null,
+  estFps: 60, lastNow: performance.now(),
+};
+
+function currentSystems(){
+  if (S.mode === "replay") return [];
+  return S.mode === "vs" ? ["ours", "baseline"] : [S.system];
+}
+
+/* ================= view ================= */
+class View {
+  constructor(system){
+    this.system = system;
+    this.dom = null; this.canvas = null; this.ctx = null;
+    this.reset(true);
+  }
+  reset(full){
+    this.rows = []; this.done = false; this.result = null;
+    this.world = null; this.n = 10; this.estCols = 19;
+    this.still = 0; this.lastRow = -1;
+    this.focusAid = -1; this.follow = false;
+    this.playhead = 0; this.pinned = false; this.freshRun = true;
+    this.cam = {zoom: 1, cx: 9, cy: 5};
+    if (this.dom){
+      this.dom.querySelector(".presult").classList.remove("show");
+      this.dom.querySelector(".pdead").classList.remove("show");
+    }
+  }
+  /* server told us we're (re)subscribed: ticks = rows already buffered */
+  onResync(ticks){
+    this.reset(true);
+    this.freshRun = ticks === 0;
+    this.pinned = !this.freshRun;   // mid-run joiner stays glued to the live edge
+  }
+  push(row){
+    this.rows.push(row);
+    if (this.rows.length > 900){
+      this.rows.splice(0, 300);
+      this.playhead = Math.max(0, Math.min(this.playhead, this.rows.length - 1));
+    }
+    if (this.pinned) this.playhead = this.rows.length - 1;
+  }
+  finish(result, ticks){
+    this.done = true; this.result = result;
+    const el = this.dom && this.dom.querySelector(".presult");
+    if (!el) return;
+    const done = result ? (result.completed || 0) : 0;
+    if (done >= this.n){
+      el.className = "presult show win";
+      el.querySelector("h3").textContent = "10 / 10 TASKS COMPLETE";
+      el.querySelector("p").textContent = `0 collisions · ${ticks} ticks · every robot decided locally`;
+    } else {
+      el.className = "presult show lose";
+      el.querySelector("h3").textContent = `FLEET FROZEN — ${done} / ${this.n} TASKS`;
+      el.querySelector("p").textContent = "the aisle deadlocked and never recovered";
+    }
+  }
+  clamp(ph){ return Math.max(0, Math.min(ph, this.rows.length - 0.0001)); }
+}
+
+/* ================= single data channel ================= */
+function setOffline(b){
+  $("offline").classList.toggle("show", b && S.mode !== "replay");
+}
+function postControl(payload){
+  if (!S.cid) return;
+  fetch("/control", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(Object.assign({cid: S.cid}, payload)),
+  }).catch(() => {});
+}
+function connectChannel(){
+  if (S.es && S.es.readyState !== 2) return;   // already open / connecting
+  if (S.es){ S.es.close(); S.es = null; }
+  S.cid = null;
+  const es = new EventSource("/channel");
+  S.es = es;
+  es.onopen  = () => setOffline(false);
+  es.onerror = () => setOffline(true);          // browser auto-retries; we re-subscribe on new meta
+  es.onmessage = ev => {
+    const m = JSON.parse(ev.data);
+    if (m.meta){
+      S.cid = m.cid; S.n = m.n;
+      postControl({action: "subscribe", systems: currentSystems()});
+      return;
+    }
+    if (m.resync){
+      for (const s of m.systems){
+        const v = S.views.find(x => x.system === s);
+        if (!v) continue;
+        v.onResync(m.ticks ? (m.ticks[s] || 0) : 0);
+        if (m.world){
+          v.world = m.world;
+          v.n = m.n || v.n;
+          v.estCols = m.world.name === "B" ? 21 : 19;
+          v.cam.cx = (v.estCols - 1) / 2;
+          v.cam.cy = 5;
+        }
+      }
+      return;
+    }
+    const v = S.views.find(x => x.system === m.system);
+    if (!v) return;
+    if (m.done){ v.finish(m.result, m.ticks); return; }
+    if (m.row) v.push(m.row);
+  };
+}
+
+/* ================= panels ================= */
+function buildPanels(){
+  stage.querySelectorAll(".panel").forEach(p => p.remove());
+  for (const v of S.views){
+    const p = document.createElement("div");
+    p.className = "panel";
+    p.innerHTML = `
+      <div class="pchip ${v.system === "ours" ? "ours" : "base"}">
+        <span class="pd"></span>${v.system === "ours" ? "SWARAJFLEET" : "STOP & WAIT"}</div>
+      <div class="pkpi">t=<b class="pt">000</b> · <b class="pk">0/${v.n}</b> · col <b class="pc">0</b> · bat <b class="pb">100%</b></div>
+      <div class="pdead"><h2>DEADLOCK</h2><p>no robot can move — the aisle is frozen</p></div>
+      <div class="presult"><h3></h3><p></p></div>
+      <canvas></canvas>`;
+    stage.insertBefore(p, $("callout"));
+    v.dom = p;
+    v.canvas = p.querySelector("canvas");
+    v.ctx = v.canvas.getContext("2d");
+    v.canvas.addEventListener("click", e => onPick(v, e));
+  }
+  resize();
+}
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  const box = S.views.length ? S.views[0].dom : stage;
+  W = box.clientWidth; H = box.clientHeight;
+  for (const v of S.views){
+    if (!v.canvas) continue;
+    v.canvas.width = Math.max(1, W * DPR);
+    v.canvas.height = Math.max(1, H * DPR);
+  }
+}
+window.addEventListener("resize", resize);
+
+/* ================= boot / modes ================= */
+let replayData = null;
+async function loadReplay(){
+  if (replayData) return replayData;
+  const r = await fetch("/replay"); replayData = await r.json(); return replayData;
+}
+async function boot(){
+  S.views = S.mode === "vs"
+    ? [new View("ours"), new View("baseline")]
+    : [new View(S.system)];
+  $("sysSeg").classList.toggle("dis", S.mode === "vs");
+  $("feedList").innerHTML = "";
+  buildPanels();
+  setModeTag();
+  if (S.mode === "replay"){
+    const d = await loadReplay();
+    for (const v of S.views){
+      v.world = d.world; v.n = d.meta.n;
+      v.estCols = d.world.name === "B" ? 21 : 19;
+      v.rows = d[v.system].slice();
+      v.freshRun = true; v.pinned = false;
+    }
+    feedSys("replay", "hero trial A · seed 8 loaded — press ▶ or STEP");
+  } else {
+    connectChannel();                       // one channel for the page lifetime
+    postControl({action: "subscribe", systems: currentSystems()});
+    feedSys("live", "fleet running in real time (4 Hz) — single data channel");
+  }
+  S.paused = !S.started;
+  updatePauseBtn();
+}
+function setModeTag(){
+  $("modeTag").textContent =
+    S.mode === "vs" ? "· live split — both systems, same seed, same tick"
+    : S.mode === "replay" ? "· recorded hero trial (A · seed 8)"
+    : S.system === "ours" ? "· live protocol, real time" : "· live baseline, real time";
+  $("dot").style.background = S.system === "baseline" && S.mode !== "vs" ? "var(--red)" : "var(--green)";
+}
+
+/* ================= decision feed ================= */
+function feedSys(kind, txt){
+  const el = document.createElement("div");
+  el.className = "fe " + (kind === "live" ? "block" : "reroute");
+  el.innerHTML = `<span class="t">SYS</span>${txt}`;
+  pushFeed(el);
+}
+function pushFeed(el){
+  const list = $("feedList");
+  list.appendChild(el);
+  while (list.children.length > 200) list.removeChild(list.firstChild);
+  list.scrollTop = list.scrollHeight;
+}
+function feedEvents(v, i0, i1){
+  if (i0 === i1 || !v.rows[i0] || !v.rows[i1]) return;
+  const A = v.rows[i0], B = v.rows[i1], t = B.t;
+  const mk = (cls, txt) => {
+    const el = document.createElement("div");
+    el.className = "fe " + cls;
+    const tag = S.mode === "vs" ? `<span class="tag ${v.system === "ours" ? "ours" : "base"}">${v.system === "ours" ? "S" : "B"}</span> ` : "";
+    el.innerHTML = `<span class="t">${String(t).padStart(3, "0")}</span>${tag}${txt}`;
+    pushFeed(el);
+  };
+  const ra = {}; for (const r of A.r) ra[r[0]] = r;
+  const rSet = new Set(B.blk.map(b => b.join(",")));
+  const aSet = new Set(A.blk.map(b => b.join(",")));
+  for (const b of B.blk) if (!aSet.has(b.join(",")))
+    mk("block", `aisle <b>blocked</b> at (${b[0]}, ${b[1]}) — fleet reroutes around it`);
+  for (const b of A.blk) if (!rSet.has(b.join(",")))
+    mk("block", `block at (${b[0]}, ${b[1]}) clears`);
+  const doneA = A.ts.filter(s => s === "DONE").length, doneB = B.ts.filter(s => s === "DONE").length;
+  if (doneB > doneA){
+    const which = B.ts.map((s, i) => s === "DONE" && A.ts[i] !== "DONE" ? i + 1 : 0).filter(Boolean);
+    mk("done", `task${which.length > 1 ? "s " + which.join(", ") : " " + which[0]} delivered — ${doneB}/${v.n} complete${doneB === v.n ? " · <b>ALL TASKS DONE</b>" : ""}`);
+  }
+  if (v.system === "ours"){
+    for (const r of B.r){
+      const intended = [r[8], r[9]], moved = [r[3], r[4]];
+      if (intended[0] === moved[0] && intended[1] === moved[1]) continue;
+      const stayed = r[1] === r[3] && r[2] === r[4];
+      if (stayed) mk("yield", `#${r[0]} <b>yields</b> its intended cell — the other robot goes first`);
+      else mk("reroute", `#${r[0]} re-plans around a changed condition`);
+    }
+  }
+  for (const r of B.r){
+    const p = ra[r[0]];
+    if (p && p[6] === 0 && r[6] >= 2 && r[3] === r[1] && r[4] === r[2])
+      mk("wait", `#${r[0]} waits (${r[6]} t) for a safe gap`);
+  }
+  if (v.still === 10 && !v.done)
+    mk("dead", `<b>NO ROBOT CAN MOVE — DEADLOCK</b> (priority rules cannot break this cycle)`);
+}
+
+/* ================= callout ================= */
+let coTimer = 0;
+function showCallout(title, body, accent){
+  const c = $("callout");
+  c.querySelector("h4").textContent = title;
+  c.querySelector("p").textContent = body;
+  c.style.borderLeftColor = accent || "var(--green)";
+  c.classList.add("show");
+  clearTimeout(coTimer);
+  coTimer = setTimeout(() => c.classList.remove("show"), 8000);
+}
+
+/* ================= camera ================= */
+function camTarget(v, t){
+  if (v.follow && v.focusAid >= 0 && v.rows.length){
+    const row = v.rows[Math.min(v.rows.length - 1, Math.ceil(v.clamp(v.playhead)))];
+    const r = row.r.find(x => x[0] === v.focusAid);
+    if (r) return {zoom: 2.2, cx: r[1], cy: r[2]};
+  }
+  if (S.mode === "replay"){
+    if (v.system === "ours" && t >= 2.4 && t < 9.6) return {zoom: 2.4, cx: 5.5, cy: 6.0};
+    if (v.system === "baseline" && t >= 64) return {zoom: 1.5, cx: 8.2, cy: 6.4};
+  }
+  return {zoom: 1, cx: (v.estCols - 1) / 2, cy: 5};
+}
+function updateCam(v, dt){
+  const t = v.lastRow >= 0 ? v.rows[Math.min(v.lastRow, v.rows.length - 1)].t : 0;
+  const tgt = camTarget(v, t);
+  const k = 1 - Math.exp(-dt * 2.2);
+  v.cam.zoom += (tgt.zoom - v.cam.zoom) * k;
+  v.cam.cx += (tgt.cx - v.cam.cx) * k;
+  v.cam.cy += (tgt.cy - v.cam.cy) * k;
+}
+
+/* ================= picking ================= */
+function onPick(v, e){
+  const rect = v.canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const cell = cellPx(v);
+  const o = originOf(v, cell);
+  let best = -1, bd = 1e9;
+  const row = v.rows.length ? v.rows[Math.min(v.rows.length - 1, Math.ceil(v.playhead))] : null;
+  if (!row) return;
+  for (const r of row.r){
+    const x = o.ox + (r[1] + 0.5) * cell, y = o.oy + (r[2] + 0.5) * cell;
+    const d = Math.hypot(mx - x, my - y);
+    if (d < bd){ bd = d; best = r[0]; }
+  }
+  if (bd < cell * 0.6){
+    v.focusAid = best; v.follow = true;
+    setCamMode("follow");
+    showCallout(`FOCUS: ROBOT #${best}`, "Camera follows this robot. Its task target is ringed. Clear by clicking empty space or pressing OVERVIEW.", "var(--blue)");
+  } else {
+    v.focusAid = -1; v.follow = false; setCamMode("overview");
+  }
+}
+function setCamMode(m){
+  for (const b of $("camSeg").querySelectorAll("button"))
+    b.classList.toggle("on", b.dataset.c === m);
+}
+
+/* ================= drawing ================= */
+function cellPx(v){
+  if (!v.world) return 40;
+  const cols = v.world.layout[0].length, rows = v.world.layout.length;
+  const uw = W - feedW();
+  return Math.min((uw - 70) / cols, (H - 90) / rows, 72) * v.cam.zoom;
+}
+function feedW(){ return $("feed").classList.contains("hide") ? 0 : 308; }
+function originOf(v, cell){
+  return {ox: (W - feedW()) / 2 - (v.cam.cx + 0.5) * cell, oy: H / 2 - (v.cam.cy + 0.5) * cell + 8};
+}
+function P(o, cell, x, y){ return {x: o.ox + (x + 0.5) * cell, y: o.oy + (y + 0.5) * cell}; }
+function roundRect(c, x, y, w, h, r){
+  c.beginPath();
+  c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+}
+function bolt(c, x, y, s){
+  c.beginPath();
+  c.moveTo(x + .52*s, y + .05*s); c.lineTo(x + .18*s, y + .56*s); c.lineTo(x + .44*s, y + .56*s);
+  c.lineTo(x + .36*s, y + .95*s); c.lineTo(x + .72*s, y + .42*s); c.lineTo(x + .46*s, y + .42*s);
+  c.closePath();
+}
+const rings = {ours: [], base: []};
+function rowEffects(v, i0, i1){
+  if (i0 === i1 || !v.rows[i0] || !v.rows[i1]) return;
+  const a = v.rows[i0].ts, b = v.rows[i1].ts, now = performance.now();
+  for (let i = 0; i < b.length; i++)
+    if (a[i] !== "DONE" && b[i] === "DONE" && v.world.tasks[i])
+      rings[v.system === "ours" ? "ours" : "base"].push({x: v.world.tasks[i][1][0], y: v.world.tasks[i][1][1], t: now});
+  const ra = {}; for (const r of v.rows[i0].r) ra[r[0]] = r;
+  for (const r of v.rows[i1].r)
+    if (ra[r[0]] && ra[r[0]][5] === 3 && r[5] !== 3)
+      rings[v.system === "ours" ? "ours" : "base"].push({x: r[1], y: r[2], t: now});
+}
+
+function drawView(v, now, ph){
+  const c = v.ctx;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  c.fillStyle = "#0a1018"; c.fillRect(0, 0, W, H);
+  if (!v.world || v.rows.length < 2){
+    const pulse = 0.5 + 0.5 * Math.sin(now / 300);
+    c.fillStyle = `rgba(143,163,191,${0.55 + 0.4 * pulse})`;
+    c.font = "600 17px system-ui"; c.textAlign = "center";
+    c.fillText(S.mode === "replay" ? "LOADING HERO RUN…" : "CONNECTING TO THE FLEET…", W / 2, H / 2 - 8);
+    c.fillStyle = "#445673"; c.font = "500 12px system-ui";
+    c.fillText("one data channel · 4 Hz ticks · 60 fps render", W / 2, H / 2 + 18);
+    c.textAlign = "left";
+    return;
+  }
+  const phc = v.clamp(ph);
+  const i0 = Math.max(0, Math.floor(phc));
+  const i1 = Math.min(v.rows.length - 1, i0 + 1);
+  const u = Math.max(0, Math.min(1, phc - i0));
+  if (i1 !== v.lastRow){
+    rowEffects(v, i1 - 1, i1);
+    const row = v.rows[i1];
+    const stillNow = row.r.every(r => r[1] === r[3] && r[2] === r[4]);
+    v.still = stillNow ? v.still + 1 : 0;
+    if (v.still === 10 && !v.done && S.mode !== "vs")
+      showCallout("THE CYCLE", "Every robot is waiting on its neighbour. Static priority can only resolve waits one at a time — this aisle is a closed loop of them.", "var(--red)");
+    feedEvents(v, Math.max(0, i1 - 1), i1);
+    v.dom.querySelector(".pdead").classList.toggle("show", v.still >= 10 && !v.done);
+    v.lastRow = i1;
+  }
+  const row0 = v.rows[i0], row1 = v.rows[i1];
+  const cell = cellPx(v), o = originOf(v, cell);
+  const L = v.world.layout, cols = L[0].length, rowsN = L.length;
+  const mx0 = P(o, cell, 0, 0);
+  c.fillStyle = "#101a2c";
+  c.fillRect(mx0.x - cell * .45, mx0.y - cell * .45, (cols + .9) * cell, (rowsN + .9) * cell);
+  c.strokeStyle = "rgba(120,150,200,.06)"; c.lineWidth = 1;
+  for (let x = 0; x <= cols; x++){
+    c.beginPath(); c.moveTo(mx0.x - cell * .45 + x * cell, mx0.y - cell * .45);
+    c.lineTo(mx0.x - cell * .45 + x * cell, mx0.y - cell * .45 + (rowsN + .9) * cell); c.stroke();
+  }
+  for (let y = 0; y <= rowsN; y++){
+    c.beginPath(); c.moveTo(mx0.x - cell * .45, mx0.y - cell * .45 + y * cell);
+    c.lineTo(mx0.x - cell * .45 + (cols + .9) * cell, mx0.y - cell * .45 + y * cell); c.stroke();
+  }
+  for (let y = 0; y < rowsN; y++) for (let x = 0; x < cols; x++){
+    if (L[y][x] !== "#") continue;
+    const p = P(o, cell, x, y);
+    roundRect(c, p.x - cell * .28, p.y - cell * .28, cell * .56, cell * .56, cell * .1);
+    c.strokeStyle = "rgba(125,160,200,.16)"; c.lineWidth = Math.max(1, cell * .035); c.stroke();
+  }
+  for (const h of v.world.homes){
+    const p = P(o, cell, h[0], h[1]);
+    roundRect(c, p.x - cell * .34, p.y - cell * .34, cell * .68, cell * .68, cell * .16);
+    c.fillStyle = "rgba(20,80,52,.85)"; c.fill();
+    c.strokeStyle = "#2fbf71"; c.lineWidth = Math.max(1.5, cell * .05); c.stroke();
+    c.fillStyle = "#3ddc84";
+    bolt(c, p.x - cell * .17, p.y - cell * .21, cell * .34); c.fill();
+  }
+  const tsNow = row1.ts;
+  for (let i = 0; i < v.world.tasks.length; i++){
+    if (tsNow[i] === "DONE") continue;
+    const tk = v.world.tasks[i];
+    const pp = P(o, cell, tk[0][0], tk[0][1]), pd = P(o, cell, tk[1][0], tk[1][1]);
+    c.globalAlpha = .55;
+    c.fillStyle = "#f6a821"; c.beginPath(); c.arc(pp.x, pp.y, cell * .08, 0, 7); c.fill();
+    c.fillStyle = "#4da3ff"; c.beginPath(); c.arc(pd.x, pd.y, cell * .08, 0, 7); c.fill();
+    c.globalAlpha = 1;
+  }
+  for (const r of row1.r){
+    const isF = v.focusAid >= 0 && r[0] === v.focusAid;
+    if (r[5] === 2 || (isF && r[5] !== 0)){
+      const p = P(o, cell, r[8], r[9]);
+      const pulse = .6 + .4 * Math.sin(now / 220);
+      c.strokeStyle = r[5] === 2 ? `rgba(246,168,33,${pulse})` : `rgba(77,163,255,${pulse})`;
+      c.lineWidth = 2.5;
+      c.beginPath(); c.arc(p.x, p.y, cell * .42, 0, 7); c.stroke();
+    }
+  }
+  for (const b of row1.blk){
+    const p = P(o, cell, b[0], b[1]);
+    const pulse = .5 + .5 * Math.sin(now / 180);
+    c.fillStyle = `rgba(246,168,33,${.25 + .2 * pulse})`;
+    c.beginPath(); c.arc(p.x, p.y, cell * .3, 0, 7); c.fill();
+    c.strokeStyle = "rgba(246,168,33,.7)"; c.lineWidth = 2;
+    c.beginPath(); c.arc(p.x, p.y, cell * .3, 0, 7); c.stroke();
+  }
+  const r0map = {}; for (const r of row0.r) r0map[r[0]] = r;
+  const list = row1.r.slice().sort((a, b) => a[2] - b[2] || a[0] - b[0]);
+  for (const r of list){
+    const p0 = r0map[r[0]] || r;
+    const px = p0[1] + (r[1] - p0[1]) * u, py = p0[2] + (r[2] - p0[2]) * u;
+    const pos = P(o, cell, px, py);
+    const moving = !(r[1] === r[3] && r[2] === r[4]);
+    if (r[8] !== r[1] || r[9] !== r[2]){
+      const n1 = P(o, cell, r[8], r[9]);
+      c.setLineDash([5, 7]);
+      c.strokeStyle = "rgba(255,255,255,.34)"; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(pos.x, pos.y); c.lineTo(n1.x, n1.y); c.stroke();
+      if (r[10] !== r[8] || r[11] !== r[9]){
+        const n2 = P(o, cell, r[10], r[11]);
+        c.strokeStyle = "rgba(255,255,255,.14)";
+        c.beginPath(); c.moveTo(n1.x, n1.y); c.lineTo(n2.x, n2.y); c.stroke();
+      }
+      c.setLineDash([]);
+    }
+    const rad = cell * .31;
+    const col = r[5] === 2 ? "#f6a821" : r[5] === 3 ? "#4da3ff" : "#93a1b5";
+    if (r[0] === v.focusAid){
+      c.strokeStyle = "rgba(77,163,255,.9)"; c.lineWidth = 3;
+      c.beginPath(); c.arc(pos.x, pos.y, rad + 5 + Math.sin(now / 200) * 2, 0, 7); c.stroke();
+    }
+    c.beginPath(); c.arc(pos.x, pos.y, rad, 0, 7);
+    c.fillStyle = col; c.fill();
+    c.lineWidth = Math.max(2, cell * .06); c.strokeStyle = "#fff"; c.stroke();
+    if (moving){
+      const dx = r[3] - r[1], dy = r[4] - r[2], l = Math.hypot(dx, dy) || 1;
+      c.strokeStyle = "#fff"; c.lineWidth = Math.max(2, cell * .055);
+      c.beginPath();
+      c.moveTo(pos.x + dx / l * rad * .55, pos.y + dy / l * rad * .55);
+      c.lineTo(pos.x + dx / l * rad * 1.25, pos.y + dy / l * rad * 1.25);
+      c.stroke();
+    }
+    c.fillStyle = "#0b1018"; c.font = `700 ${Math.max(10, rad * .78)}px system-ui`;
+    c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText(String(r[0]), pos.x, pos.y + 1);
+    c.textAlign = "left"; c.textBaseline = "alphabetic";
+    if (r[12] != null){
+      const bw = Math.max(9, rad * .95), bh = 3, bx = pos.x - bw / 2, by = pos.y + rad + 4;
+      c.fillStyle = "rgba(8,13,24,.85)"; c.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+      c.fillStyle = r[12] > 40 ? "#3ddc84" : r[12] > 20 ? "#f6a821" : "#ff5c5c";
+      c.fillRect(bx, by, Math.max(1, bw * r[12] / 100), bh);
+      c.strokeStyle = "rgba(255,255,255,.28)"; c.lineWidth = 1; c.strokeRect(bx - 1, by - 1, bw + 2, bh + 2);
+    }
+  }
+  const R = rings[v.system === "ours" ? "ours" : "base"];
+  for (let i = R.length - 1; i >= 0; i--){
+    const g = (now - R[i].t) / 650;
+    if (g >= 1){ R.splice(i, 1); continue; }
+    const p = P(o, cell, R[i].x, R[i].y);
+    c.strokeStyle = `rgba(61,220,132,${(1 - g) * .9})`;
+    c.lineWidth = 3 * (1 - g) + 1;
+    c.beginPath(); c.arc(p.x, p.y, cell * (.35 + g * .9), 0, 7); c.stroke();
+  }
+  const row = row1;
+  const done = row.ts.filter(s => s === "DONE").length;
+  const col = v.result ? (v.result.collisions || 0) : 0;
+  v.dom.querySelector(".pt").textContent = String(row.t).padStart(3, "0");
+  v.dom.querySelector(".pk").textContent = `${done}/${v.n}`;
+  const pc = v.dom.querySelector(".pc");
+  pc.textContent = col; pc.style.color = col > 0 ? "var(--red)" : "var(--green)";
+  const pb = v.dom.querySelector(".pb");
+  if (pb){
+    const bats = row1.r.map(r => r[12]).filter(b => b != null);
+    const mb = bats.length ? Math.min(...bats) : 100;
+    pb.textContent = Math.round(mb) + "%";
+    pb.style.color = mb > 40 ? "var(--green)" : mb > 20 ? "#f6a821" : "var(--red)";
+  }
+}
+
+/* ================= main loop (crash-proof) ================= */
+function frame(now){
+  requestAnimationFrame(frame);
+  try {
+    const dt = Math.min(0.1, (now - S.lastNow) / 1000); S.lastNow = now;
+    S.estFps = S.estFps * .95 + (1 / Math.max(dt, 1e-4)) * .05;
+    $("fpsV").textContent = Math.min(60, Math.round(S.estFps));
+    const rate = 1000 / (TICK_MS / S.speed);
+    for (const v of S.views){
+      if (!S.paused && S.started)
+        v.playhead = Math.min(v.playhead + dt * rate / 1000, v.rows.length - 0.0001);
+      updateCam(v, dt);
+      drawView(v, now, v.playhead);
+    }
+    const v0 = S.views[0];
+    if (v0 && v0.rows.length){
+      const row = v0.rows[Math.min(v0.rows.length - 1, Math.ceil(v0.clamp(v0.playhead)))];
+      $("kTick").textContent = String(row.t).padStart(3, "0");
+      $("kTasks").textContent = `${row.ts.filter(s => s === "DONE").length}/${v0.n}`;
+      const col = v0.result ? (v0.result.collisions || 0) : 0;
+      const kc = $("kCol"); kc.textContent = col; kc.className = col > 0 ? "r" : "g";
+      const bats0 = row.r.map(r => r[12]).filter(b => b != null);
+      const kb = $("kBat");
+      if (bats0.length){
+        const mb = Math.min(...bats0);
+        kb.textContent = Math.round(mb) + "%";
+        kb.className = mb > 40 ? "g" : mb > 20 ? "a" : "r";
+      }
+    }
+    const maxR = Math.max(0, ...S.views.map(v => v.rows.length - 1));
+    const ref = v0 ? v0.playhead : 0;
+    const frac = maxR > 0 ? Math.min(1, ref / maxR) : 0;
+    $("scrubFill").style.width = (frac * 100) + "%";
+    $("scrubThumb").style.left = `calc(${(frac * 100)}% - 1px)`;
+    $("scrubT").textContent = `TICK ${Math.floor(ref + 1)} / ${maxR + 1}`;
+  } catch (err){
+    if (!frame.errShown){
+      frame.errShown = true;
+      showCallout("RENDER ERROR", String((err && err.message) || err) + " — the loop recovered automatically.", "var(--red)");
+    }
+  }
+}
+
+/* ================= scrubber ================= */
+$("scrub").addEventListener("pointerdown", e => {
+  const move = ev => {
+    const r = $("scrub").getBoundingClientRect();
+    const f = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
+    for (const v of S.views){
+      v.pinned = false;
+      v.playhead = f * Math.max(0, v.rows.length - 1);
+    }
+  };
+  move(e);
+  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+});
+
+/* ================= controls ================= */
+function updatePauseBtn(){ $("pauseBtn").textContent = S.paused ? "▶" : "❚❚"; }
+function seg(id, attr, fn){
+  $(id).addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    for (const x of $(id).querySelectorAll("button")) x.classList.remove("on");
+    b.classList.add("on"); fn(b[attr]);
+  });
+}
+seg("modeSeg", "data-m", m => { S.mode = m; boot(); });
+seg("sysSeg", "data-s", s => { S.system = s; boot(); });
+seg("spdSeg", "data-v", v => { S.speed = +v; });
+$("pauseBtn").onclick = () => { S.paused = !S.paused; updatePauseBtn(); };
+$("stepBtn").onclick = () => {
+  S.paused = true; updatePauseBtn();
+  for (const v of S.views){
+    v.pinned = false;
+    v.playhead = Math.min(Math.floor(v.playhead + 1e-6) + 1, v.rows.length - 0.0001);
+  }
+};
+$("rerunBtn").onclick = () => {
+  if (S.mode === "replay"){
+    for (const v of S.views) v.playhead = 0;
+    S.paused = false; updatePauseBtn();
+  } else {
+    postControl({action: "rerun"});
+    feedSys("live", "rerun requested — fresh run from tick 1");
+  }
+};
+$("camSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  setCamMode(b.dataset.c);
+  if (b.dataset.c === "overview") for (const v of S.views){ v.follow = false; }
+});
+$("feedBtn").onclick = () => { $("feedBtn").classList.toggle("on"); $("feed").classList.toggle("hide"); };
+$("legendBtn").onclick = () => { $("legend").classList.toggle("show"); };
+window.addEventListener("keydown", e => {
+  if (e.code === "Space"){ e.preventDefault(); S.paused = !S.paused; updatePauseBtn(); }
+  if (e.key === "s" || e.key === "S") $("stepBtn").click();
+  if (e.key === "ArrowRight") for (const v of S.views){ v.pinned = false; v.playhead = Math.min(v.playhead + 10, v.rows.length - 0.0001); }
+  if (e.key === "ArrowLeft")  for (const v of S.views){ v.pinned = false; v.playhead = Math.max(0, v.playhead - 10); }
+});
+$("startBtn").onclick = () => {
+  $("onboard").style.display = "none";
+  S.started = true; S.paused = false; updatePauseBtn();
+  if (S.views[0] && S.views[0].system === "ours" && S.mode !== "vs")
+    showCallout("NO CENTRAL SERVER", "Every robot reads the same shared snapshot and decides for itself — yield, follow, wait. Flip to STOP & WAIT to watch the same seed deadlock.", "var(--green)");
+};
+
+/* ================= boot ================= */
+resize();
+boot();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
