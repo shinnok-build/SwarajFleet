@@ -19,7 +19,7 @@ A decentralized, peer-to-peer coordination protocol for autonomous mobile robots
 
 **▶ Play the full 70-second demo in your browser:** [demo player on GitHub Pages](https://shinnok-build.github.io/SwarajFleet/demo.html) · [direct MP4 download](media/SIH26123-DEMO.mp4) (5.3 MB, 720p60)
 
-_Extended 2:30 production cut (judge version): [SIH26123-DEMO-V2-FINAL.mp4](https://drive.google.com/file/d/1jHoNdFgt1OV6nUBTk48FBqe3MesRSRH6/view) - hosted on the team drive._
+_Extended 2:30 production cut: [SIH26123-DEMO-V2-FINAL.mp4](https://drive.google.com/file/d/1jHoNdFgt1OV6nUBTk48FBqe3MesRSRH6/view) - hosted on the team drive._
 
 [Live simulation - runs in your browser](#live-simulation-github-pages) · [Live demo](#live-demo) · [Benchmark report](docs/BENCHMARK-REPORT.md) · [Architecture & design](docs/ARCHITECTURE.md)
 
