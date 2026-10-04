@@ -70,7 +70,7 @@ Method: 3 warehouse layouts × 30 fixed seeds × {5, 10} robots; pickup/delivery
 | Collisions (all 240 scale runs, both systems) | **0**             | 0                         |
 
 PS success bar - _≥20% faster than stop-and-wait on overlapping paths_: **met (28–61%)**.
-Known residual, disclosed: 2/90 at 5 robots (corner cycles, watchdog-bounded) — see [ARCHITECTURE §6](docs/ARCHITECTURE.md#6-known-limits--roadmap).
+Known residual, disclosed: 2/90 at 5 robots (corner cycles, watchdog-bounded) - see [ARCHITECTURE §6](docs/ARCHITECTURE.md#6-known-limits--roadmap).
 
 **PS-compliant stress proofs** (`python3 proto/stress_runs.py`, deterministic, asserted in CI):
 
@@ -111,7 +111,7 @@ Or with make: `make benchmark` · `make stress` · `make bench3` · `make bench-
 
 ![site screenshot](media/site-screenshot.png)
 
-A single, self-contained web page - [site/index.html](site/index.html) - that runs the **actual protocol 100% in the browser**. No server, no build step, no dependencies: it is a faithful JavaScript port of `proto/swaraj.py`, verified to reproduce the Python reference **world-for-world** on 72 seeded worlds (see `tests/site/crosscheck.js`). The 70-second demo video is also hosted here: [site/demo.html](site/demo.html).
+A single, self-contained web page - [Live Simulation](https://shinnok-build.github.io/SwarajFleet/) - that runs the **actual protocol 100% in the browser**. No server, no build step, no dependencies: it is a faithful JavaScript port of `proto/swaraj.py`, verified to reproduce the Python reference **world-for-world** on 72 seeded worlds (see `tests/site/crosscheck.js`). The 70-second demo video is also hosted here: [site/demo.html](site/demo.html).
 
 What it does:
 
